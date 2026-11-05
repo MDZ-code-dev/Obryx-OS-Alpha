@@ -1,0 +1,49 @@
+name: Build ONYX OS Live ISO
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Free cloud-runner disk
+        shell: bash
+        run: |
+          df -h /
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /usr/local/share/powershell /opt/ghc /opt/hostedtoolcache || true
+          docker system prune -af || true
+          df -h /
+      - name: Check source files
+        run: bash build-onyx-iso.sh --check
+      - name: Build Fedora KDE image
+        shell: bash
+        run: |
+          docker run --rm --privileged --network=host \
+            -v /dev:/dev \
+            -v "${{ github.workspace }}:/workspace" \
+            -w /workspace \
+            -e ONYX_WORKDIR=/workspace/work \
+            -e ONYX_OUTPUT=/workspace/output \
+            fedora:45 bash /workspace/build-onyx-iso.sh
+      - name: Verify ISO and checksum
+        run: |
+          test -s output/ONYX-OS-0.1-Alpha-x86_64.iso
+          test -s output/ONYX-OS-0.1-Alpha-x86_64.iso.sha256
+          ls -lh output/*
+      - name: Upload boot image
+        uses: actions/upload-artifact@v4
+        with:
+          name: ONYX-OS-Alpha-ISO
+          path: |
+            output/ONYX-OS-0.1-Alpha-x86_64.iso
+            output/ONYX-OS-0.1-Alpha-x86_64.iso.sha256
+          retention-days: 1
+          compression-level: 0
+          if-no-files-found: error

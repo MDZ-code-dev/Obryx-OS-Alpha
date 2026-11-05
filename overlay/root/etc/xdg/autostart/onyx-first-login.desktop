@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=ONYX first login
+Exec=/usr/local/bin/onyx-first-login
+OnlyShowIn=KDE;
+NoDisplay=true
+X-KDE-autostart-phase=2

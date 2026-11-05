@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=About ONYX OS
+Exec=xdg-open file:///usr/share/onyx-os/about.html
+Icon=preferences-system
+Terminal=false
+Categories=Settings;System;

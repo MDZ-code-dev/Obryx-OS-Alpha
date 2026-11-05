@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -u
+state="${XDG_STATE_HOME:-$HOME/.local/state}/onyx-os"
+mkdir -p "$state" 2>/dev/null || exit 0
+[[ -f "$state/first-login" ]] && exit 0
+command -v plasma-apply-colorscheme >/dev/null && plasma-apply-colorscheme BreezeDark >/dev/null 2>&1 || true
+command -v plasma-apply-desktoptheme >/dev/null && plasma-apply-desktoptheme breeze-dark >/dev/null 2>&1 || true
+command -v plasma-apply-wallpaperimage >/dev/null && plasma-apply-wallpaperimage /usr/share/wallpapers/ONYX/contents/images/1920x1080.svg >/dev/null 2>&1 || true
+command -v kwriteconfig6 >/dev/null && kwriteconfig6 --file kdeglobals --group General --key ColorScheme BreezeDark >/dev/null 2>&1 || true
+touch "$state/first-login"
