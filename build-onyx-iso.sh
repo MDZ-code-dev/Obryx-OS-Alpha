@@ -27,9 +27,23 @@ mkdir -p "$WORK/upstream/root"
 cp -a "$ROOT/overlay/root/." "$WORK/upstream/root/"
 cd "$WORK/upstream"
 ./kiwi-build --kiwi-file=Fedora.kiwi --image-type=iso --image-profile=KDE-Desktop-Live --output-dir="$OUT"
-mapfile -t ISOS < <(find "$OUT" -type f -name '*.iso' | sort)
-[[ "${#ISOS[@]}" -eq 1 ]] || { echo "Expected exactly one ISO; found ${#ISOS[@]}"; exit 1; }
+# The upstream Fedora kiwi-build wrapper writes its finished ISO to
+# ${project}/output-build even if --output-dir has been passed to kiwi-build.
+# Inspect both locations instead of assuming the Fedora build failed.
+IMAGE_DIRS=()
+for dir in "$OUT" "$ROOT/output-build" "$WORK/upstream/output-build"; do
+  if [[ -d "$dir" ]]; then IMAGE_DIRS+=("$dir"); fi
+done
+mapfile -t ISOS < <(find "${IMAGE_DIRS[@]}" -maxdepth 2 -type f -name '*.iso' -print | sort -u)
+if [[ "${#ISOS[@]}" -ne 1 ]]; then
+  echo "Expected exactly one ISO; found ${#ISOS[@]}"
+  printf 'Searched: %s\n' "${IMAGE_DIRS[@]}"
+  printf 'Candidates: %s\n' "${ISOS[@]:-none}"
+  exit 1
+fi
 TARGET="$OUT/ONYX-OS-0.1-Alpha-x86_64.iso"
-if [[ "${ISOS[0]}" != "$TARGET" ]]; then mv "${ISOS[0]}" "$TARGET"; fi
+if [[ "${ISOS[0]}" != "$TARGET" ]]; then mv -- "${ISOS[0]}" "$TARGET"; fi
+[[ -s "$TARGET" ]] || { echo "Empty ISO: $TARGET"; exit 1; }
 (cd "$OUT" && sha256sum "$(basename "$TARGET")" > "$(basename "$TARGET").sha256")
-echo "ISO created at $TARGET; boot-testing remains required."
+ls -lh "$TARGET" "$TARGET.sha256"
+echo "ISO produced at $TARGET; boot-testing remains required."
