@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -33,17 +33,50 @@ jobs:
             -e ONYX_OUTPUT=/workspace/output \
             fedora:45 bash /workspace/build-onyx-iso.sh
       - name: Verify ISO and checksum
+        shell: bash
         run: |
+          set -euo pipefail
           test -s output/ONYX-OS-0.1-Alpha-x86_64.iso
           test -s output/ONYX-OS-0.1-Alpha-x86_64.iso.sha256
-          ls -lh output/*
-      - name: Upload boot image
-        uses: actions/upload-artifact@v4
-        with:
-          name: ONYX-OS-Alpha-ISO
-          path: |
-            output/ONYX-OS-0.1-Alpha-x86_64.iso
-            output/ONYX-OS-0.1-Alpha-x86_64.iso.sha256
-          retention-days: 1
-          compression-level: 0
-          if-no-files-found: error
+          (cd output && sha256sum --check ONYX-OS-0.1-Alpha-x86_64.iso.sha256)
+          file output/ONYX-OS-0.1-Alpha-x86_64.iso
+          ls -lh output/ONYX-OS-0.1-Alpha-x86_64.iso
+      # Releases permit large assets without the GitHub Actions artifact quota.
+      # GitHub release assets must each be smaller than 2 GiB.
+      - name: Publish ONYX alpha ISO to private GitHub Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -Eeuo pipefail
+          TAG="v0.1.0-alpha"
+          ISO="output/ONYX-OS-0.1-Alpha-x86_64.iso"
+          SHA="$ISO.sha256"
+          df -h .
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            gh release create "$TAG" \
+              --target "$GITHUB_SHA" \
+              --title "ONYX OS 0.1 Alpha - untested Live ISO" \
+              --notes "Experimental Fedora 45 KDE Live image. The build and checksum are automated but booting and installing have NOT yet been tested. For testing only; do not replace your main OS." \
+              --prerelease
+          fi
+          gh release upload "$TAG" "$SHA" --clobber
+          SIZE=$(stat -c %s "$ISO")
+          SINGLE_LIMIT=$((1800 * 1024 * 1024))
+          if (( SIZE < SINGLE_LIMIT )); then
+            gh release upload "$TAG" "$ISO" --clobber
+          else
+            echo "ISO exceeds safe single-asset size; uploading numbered parts."
+            gh release upload "$TAG" tools/COMBINE-ONYX-WINDOWS.cmd --clobber
+            PART_SIZE_MIB=900
+            partnum=0
+            while (( partnum * PART_SIZE_MIB * 1024 * 1024 < SIZE )); do
+              printf -v PART "output/ONYX-OS-0.1-Alpha-x86_64.iso.part%02d" "$partnum"
+              dd if="$ISO" of="$PART" bs=1M skip="$((partnum * PART_SIZE_MIB))" count="$PART_SIZE_MIB" status=none
+              test -s "$PART"
+              gh release upload "$TAG" "$PART" --clobber
+              rm -f "$PART"
+              (( partnum += 1 ))
+            done
+          fi
+          gh release view "$TAG" --json url --jq .url
