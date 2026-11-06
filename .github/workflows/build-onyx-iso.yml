@@ -52,6 +52,12 @@ jobs:
           TAG="v0.1.0-alpha"
           ISO="output/ONYX-OS-0.1-Alpha-x86_64.iso"
           SHA="$ISO.sha256"
+          # The ISO is created as root inside the Fedora Docker container.
+          # Make the output directory writable by the GitHub runner so
+          # split ISO assets (.part00, .part01, ...) can be created.
+          sudo chown -R "$(id -u):$(id -g)" output
+          test -w output
+          test -r "$ISO"
           df -h .
           if ! gh release view "$TAG" >/dev/null 2>&1; then
             gh release create "$TAG" \
