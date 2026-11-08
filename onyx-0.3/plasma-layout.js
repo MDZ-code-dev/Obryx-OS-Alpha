@@ -1,9 +1,9 @@
 // ONYX OS 0.3: initial KDE Plasma desktop layout.
 // Executed through org.kde.PlasmaShell.evaluateScript.
 // Uses native Plasma widgets so the launcher, notifications and apps remain functional.
-var panels = panels();
-for (var i = panels.length - 1; i >= 0; --i) {
-  panels[i].remove();
+var existingPanels = panels();
+for (var i = existingPanels.length - 1; i >= 0; --i) {
+  existingPanels[i].remove();
 }
 var dock = new Panel();
 dock.location = "bottom";
