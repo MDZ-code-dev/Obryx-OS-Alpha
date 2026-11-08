@@ -1,7 +1,9 @@
 [Desktop Entry]
 Type=Application
-Name=ONYX first login
+Name=ONYX desktop initialization
+Comment=Apply built-in ONYX defaults to the first KDE session
 Exec=/usr/local/bin/onyx-first-login
 OnlyShowIn=KDE;
+Terminal=false
 NoDisplay=true
 X-KDE-autostart-phase=2

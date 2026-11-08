@@ -1,1 +1,22 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080"><defs><linearGradient id="base" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#0a0d13"/><stop offset=".58" stop-color="#141b27"/><stop offset="1" stop-color="#06070b"/></linearGradient><linearGradient id="facet"><stop offset="0" stop-color="#c1c6ce" stop-opacity=".11"/><stop offset="1" stop-color="#515e6f" stop-opacity=".02"/></linearGradient></defs><rect width="1920" height="1080" fill="url(#base)"/><path d="M1170 20 1910 0 1580 750 1090 1080 530 1080Z" fill="url(#facet)"/><path d="M900 0 1640 0 1310 1080 980 1080Z" fill="#b2becb" opacity=".045"/><path d="M1640 0 1920 280 1730 960 1300 1080Z" fill="#b2becb" opacity=".06"/><path d="M10 1060 550 450 1100 0" fill="none" stroke="#e0e5ed" opacity=".045" stroke-width="2"/><path d="M1920 0 1200 760 520 1080" fill="none" stroke="#e0e5ed" opacity=".07" stroke-width="2"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+<defs>
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#090c12"/><stop offset="0.57" stop-color="#141a22"/><stop offset="1" stop-color="#06080b"/></linearGradient>
+  <linearGradient id="stone" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#8d939e"/><stop offset="1" stop-color="#1b1d22"/></linearGradient>
+</defs>
+<rect width="1920" height="1080" fill="url(#bg)"/>
+<path d="M1080 -20 L1920 0 L1560 1080 L530 1080Z" fill="#c4d2e6" opacity=".06"/>
+<path d="M1460 -50 L1920 330 L1850 980 L1230 1080Z" fill="#9fb1d0" opacity=".055"/>
+<path d="M1150 -20 L1800 0 L1260 1080Z" fill="#8796b3" opacity=".055"/>
+<path d="M400 1080 L1060 0" fill="none" stroke="#edf0f5" opacity=".07" stroke-width="2"/>
+<g transform="translate(260 332) scale(2.9)">
+  <path d="M60 4 L90 56 L59 126 L16 91 L6 46Z" fill="#22262c"/>
+  <path d="M60 4 L6 46 L46 56Z" fill="#a0a5ae"/>
+  <path d="M60 4 L90 56 L46 56Z" fill="#656c75"/>
+  <path d="M6 46 L16 91 L46 56Z" fill="#6f747c"/>
+  <path d="M16 91 L59 126 L46 56Z" fill="#363b43"/>
+  <path d="M46 56 L90 56 L59 126Z" fill="#111419"/>
+</g>
+<text x="570" y="496" fill="#f4f5f7" font-family="Noto Sans,DejaVu Sans,sans-serif" font-weight="700" font-size="113" letter-spacing="8">ONYX</text>
+<text x="580" y="575" fill="#bbc0c7" font-family="Noto Sans,DejaVu Sans,sans-serif" font-weight="400" font-size="56" letter-spacing="25">OS</text>
+<text x="580" y="645" fill="#6e7580" font-family="Noto Sans,DejaVu Sans,sans-serif" font-size="19" letter-spacing="8">DESKTOP   ·   ALPHA 0.2</text>
+</svg>

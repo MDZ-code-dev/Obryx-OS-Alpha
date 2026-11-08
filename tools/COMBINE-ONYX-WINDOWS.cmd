@@ -1,7 +1,7 @@
 @echo off
 setlocal EnableDelayedExpansion
 cd /d "%~dp0"
-set "ISO=ONYX-OS-0.1-Alpha-x86_64.iso"
+set "ISO=ONYX-OS-0.2-Alpha-x86_64.iso"
 if not exist "%ISO%.part00" (
   echo Could not find ONYX OS ISO parts in this folder.
   echo Download all .part00, .part01, etc. files from the same GitHub Release.

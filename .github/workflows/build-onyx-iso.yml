@@ -36,11 +36,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test -s output/ONYX-OS-0.1-Alpha-x86_64.iso
-          test -s output/ONYX-OS-0.1-Alpha-x86_64.iso.sha256
-          (cd output && sha256sum --check ONYX-OS-0.1-Alpha-x86_64.iso.sha256)
-          file output/ONYX-OS-0.1-Alpha-x86_64.iso
-          ls -lh output/ONYX-OS-0.1-Alpha-x86_64.iso
+          test -s output/ONYX-OS-0.2-Alpha-x86_64.iso
+          test -s output/ONYX-OS-0.2-Alpha-x86_64.iso.sha256
+          (cd output && sha256sum --check ONYX-OS-0.2-Alpha-x86_64.iso.sha256)
+          file output/ONYX-OS-0.2-Alpha-x86_64.iso
+          ls -lh output/ONYX-OS-0.2-Alpha-x86_64.iso
+          echo "NOTE: ISO signature and checksum are valid; live desktop boot still needs testing."
       # Releases permit large assets without the GitHub Actions artifact quota.
       # GitHub release assets must each be smaller than 2 GiB.
       - name: Publish ONYX alpha ISO to private GitHub Release
@@ -49,8 +50,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -Eeuo pipefail
-          TAG="v0.1.0-alpha"
-          ISO="output/ONYX-OS-0.1-Alpha-x86_64.iso"
+          TAG="v0.2.0-alpha"
+          ISO="output/ONYX-OS-0.2-Alpha-x86_64.iso"
           SHA="$ISO.sha256"
           # The ISO is created as root inside the Fedora Docker container.
           # Make the output directory writable by the GitHub runner so
@@ -62,7 +63,7 @@ jobs:
           if ! gh release view "$TAG" >/dev/null 2>&1; then
             gh release create "$TAG" \
               --target "$GITHUB_SHA" \
-              --title "ONYX OS 0.1 Alpha - untested Live ISO" \
+              --title "ONYX OS 0.2 Alpha - untested Live ISO" \
               --notes "Experimental Fedora 45 KDE Live image. The build and checksum are automated but booting and installing have NOT yet been tested. For testing only; do not replace your main OS." \
               --prerelease
           fi
@@ -81,7 +82,7 @@ jobs:
             PART_SIZE_MIB=900
             partnum=0
             while (( partnum * PART_SIZE_MIB * 1024 * 1024 < SIZE )); do
-              printf -v PART '%s/ONYX-OS-0.1-Alpha-x86_64.iso.part%02d' "$PART_DIR" "$partnum"
+              printf -v PART '%s/ONYX-OS-0.2-Alpha-x86_64.iso.part%02d' "$PART_DIR" "$partnum"
               dd if="$ISO" of="$PART" bs=1M skip="$((partnum * PART_SIZE_MIB))" count="$PART_SIZE_MIB" status=none
               test -s "$PART"
               gh release upload "$TAG" "$PART" --clobber

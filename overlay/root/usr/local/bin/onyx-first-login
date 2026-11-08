@@ -1,10 +1,34 @@
 #!/usr/bin/env bash
+# Applied automatically in the *Live* KDE desktop session. No manual kit.
 set -u
 state="${XDG_STATE_HOME:-$HOME/.local/state}/onyx-os"
 mkdir -p "$state" 2>/dev/null || exit 0
-[[ -f "$state/first-login" ]] && exit 0
-command -v plasma-apply-colorscheme >/dev/null && plasma-apply-colorscheme BreezeDark >/dev/null 2>&1 || true
-command -v plasma-apply-desktoptheme >/dev/null && plasma-apply-desktoptheme breeze-dark >/dev/null 2>&1 || true
-command -v plasma-apply-wallpaperimage >/dev/null && plasma-apply-wallpaperimage /usr/share/wallpapers/ONYX/contents/images/1920x1080.svg >/dev/null 2>&1 || true
-command -v kwriteconfig6 >/dev/null && kwriteconfig6 --file kdeglobals --group General --key ColorScheme BreezeDark >/dev/null 2>&1 || true
-touch "$state/first-login"
+log="$state/first-login.log"
+[[ -f "$state/first-login-applied" ]] && exit 0
+printf 'ONYX first login setup started: %s\n' "$(date -Is)" >> "$log"
+wall="/usr/share/wallpapers/ONYX/contents/images/1920x1080.png"
+[[ -s "$wall" ]] || { echo "Wallpaper missing" >> "$log"; exit 1; }
+if command -v plasma-apply-colorscheme >/dev/null; then
+  plasma-apply-colorscheme BreezeDark >> "$log" 2>&1 || true
+fi
+if command -v plasma-apply-desktoptheme >/dev/null; then
+  plasma-apply-desktoptheme breeze-dark >> "$log" 2>&1 || true
+fi
+if command -v kwriteconfig6 >/dev/null; then
+  kwriteconfig6 --file kdeglobals --group General --key ColorScheme BreezeDark >> "$log" 2>&1 || true
+fi
+if ! command -v plasma-apply-wallpaperimage >/dev/null; then
+  echo "plasma-apply-wallpaperimage not available" >> "$log"
+  exit 1
+fi
+# Plasma can need a moment to register its DBus interface on initial login.
+for attempt in 1 2 3 4 5 6 7 8; do
+  if plasma-apply-wallpaperimage "$wall" >> "$log" 2>&1; then
+    echo "ONYX wallpaper successfully applied" >> "$log"
+    touch "$state/first-login-applied"
+    exit 0
+  fi
+  sleep 2
+done
+echo "ONYX wallpaper application failed after retries" >> "$log"
+exit 1
