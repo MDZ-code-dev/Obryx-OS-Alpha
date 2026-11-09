@@ -24,18 +24,35 @@ ln -sfn /usr/share/wallpapers/ONYX /usr/share/wallpapers/Default
 if [ -f /usr/lib/os-release ]; then
   sed -i \
     -e 's/^NAME=.*/NAME="ONYX OS"/' \
-    -e 's/^PRETTY_NAME=.*/PRETTY_NAME="ONYX OS 0.2 Alpha (based on Fedora 45)"/' \
+    -e 's/^PRETTY_NAME=.*/PRETTY_NAME="ONYX OS 0.3 Alpha (based on Fedora 45)"/' \
     /usr/lib/os-release
 elif [ -f /etc/os-release ]; then
   sed -i \
     -e 's/^NAME=.*/NAME="ONYX OS"/' \
-    -e 's/^PRETTY_NAME=.*/PRETTY_NAME="ONYX OS 0.2 Alpha (based on Fedora 45)"/' \
+    -e 's/^PRETTY_NAME=.*/PRETTY_NAME="ONYX OS 0.3 Alpha (based on Fedora 45)"/' \
     /etc/os-release
 fi
 test -e /usr/share/wallpapers/Default/contents/images/1920x1080.png || {
   echo "FATAL: ONYX system wallpaper was not set" >&2; exit 39;
 }
-grep -q 'ONYX OS 0.2 Alpha' /usr/lib/os-release /etc/os-release 2>/dev/null || {
+grep -q 'ONYX OS 0.3 Alpha' /usr/lib/os-release /etc/os-release 2>/dev/null || {
   echo "FATAL: ONYX OS branding not present in os-release" >&2; exit 40;
 }
 echo "ONYX-OS: default system wallpaper, dark UI configuration and OS name verified."
+
+# ONYX 0.3 Plasma splash and desktop configuration.
+if [ ! -s /usr/share/onyx-os/plasma-layout.js ] || [ ! -s /usr/share/plasma/look-and-feel/org.onyx.desktop/contents/splash/Splash.qml ]; then
+  echo "FATAL: ONYX 0.3 desktop components are missing" >&2
+  exit 41
+fi
+if [ ! -f /etc/xdg/autostart/onyx-desktop-setup.desktop ] || [ ! -f /usr/local/bin/onyx-desktop-setup ]; then
+  echo "FATAL: ONYX 0.3 desktop initialization is missing" >&2
+  exit 42
+fi
+chmod +x /usr/local/bin/onyx-desktop-setup
+# Apply ONYX splash to the session through the default KDE config.
+mkdir -p /etc/xdg
+if [ -f /etc/xdg/kdeglobals ]; then
+  sed -i 's/^LookAndFeelPackage=.*/LookAndFeelPackage=org.onyx.desktop/' /etc/xdg/kdeglobals
+fi
+echo "ONYX-OS: 0.3 splash and desktop assets embedded."
