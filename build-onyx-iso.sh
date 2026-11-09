@@ -41,8 +41,8 @@ mkdir -p "$WORK/upstream/root"
 cp -a "$ROOT/overlay/root/." "$WORK/upstream/root/"
 # Fedora's config.sh runs after KIWI applies the overlay. Apply our default
 # settings last, and fail the image if ONYX files were not included.
-printf '\n\n# ONYX OS final system-level branding check and defaults\n' >> "$WORK/upstream/config.sh"
-cat "$ROOT/build/onyx-config-hook.sh" >> "$WORK/upstream/config.sh"
+python3 "$ROOT/tools/prepare-kiwi.py" "$WORK/upstream"
+bash -n "$WORK/upstream/config.sh"
 echo "ONYX branding hook added to Fedora KIWI config.sh"
 cd "$WORK/upstream"
 ./kiwi-build --kiwi-file=Fedora.kiwi --image-type=iso --image-profile=KDE-Desktop-Live --output-dir="$OUT"

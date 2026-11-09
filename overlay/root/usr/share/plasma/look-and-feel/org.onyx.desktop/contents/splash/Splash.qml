@@ -1,55 +1,46 @@
-import QtQuick 2.15
-import QtQuick.Window 2.15
+import QtQuick
 
 Rectangle {
     id: root
-    width: Screen.width
-    height: Screen.height
     color: "#0c1017"
-    property int pulse: 0
-    Text {
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.verticalCenter: parent.verticalCenter
-        anchors.verticalCenterOffset: -55
-        text: "◆"
-        font.pixelSize: 84
-        color: "#79d8e9"
-        opacity: 0.95
-    }
-    Text {
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.verticalCenter: parent.verticalCenter
-        anchors.verticalCenterOffset: 28
-        text: "ONYX OS"
-        color: "#f3f7fb"
-        font.pixelSize: 34
-        font.bold: true
-        font.letterSpacing: 5
-    }
-    Row {
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.verticalCenter: parent.verticalCenter
-        anchors.verticalCenterOffset: 98
-        spacing: 8
-        Repeater {
-            model: 9
-            Rectangle {
-                width: 7; height: 7; radius: 2
-                color: "#79d8e9"
-                opacity: (index === root.pulse % 9) ? 1 : 0.2
-            }
+    // KSplashQML writes this property as the session progresses.
+    property int stage: 0
+    property bool reducedMotion: false
+    Column {
+        anchors.centerIn: parent
+        spacing: 28
+        Image {
+            anchors.horizontalCenter: parent.horizontalCenter
+            source: "file:///usr/share/onyx-os/onyx-logo.svg"
+            sourceSize.width: 240
+            width: 240
+            height: 120
+            fillMode: Image.PreserveAspectFit
         }
-    }
-    Timer {
-        interval: 140
-        repeat: true
-        running: true
-        onTriggered: root.pulse++
-    }
-    Connections {
-        target: typeof splash !== "undefined" ? splash : null
-        function onStageChanged() {
-            if (splash.stage >= 5) splash.visible = false
+        Grid {
+            anchors.horizontalCenter: parent.horizontalCenter
+            columns: 3
+            spacing: 6
+            Repeater {
+                model: 9
+                Rectangle {
+                    id: square
+                    required property int index
+                    width: 10
+                    height: 10
+                    radius: 2
+                    color: "#79d8e9"
+                    opacity: root.reducedMotion ? 0.7 : 0.2
+                    SequentialAnimation on opacity {
+                        running: !root.reducedMotion && root.stage < 6
+                        loops: Animation.Infinite
+                        PauseAnimation { duration: square.index * 80 }
+                        NumberAnimation { to: 1; duration: 220 }
+                        NumberAnimation { to: 0.2; duration: 400 }
+                        PauseAnimation { duration: (8 - square.index) * 80 }
+                    }
+                }
+            }
         }
     }
 }

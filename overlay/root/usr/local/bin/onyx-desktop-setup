@@ -23,14 +23,16 @@ command -v dbus-send >/dev/null 2>&1 || {
   exit 1
 }
 for attempt in $(seq 1 20); do
-  if dbus-send --session --print-reply --reply-timeout=5000 \
+  if reply=$(dbus-send --session --print-reply --reply-timeout=5000 \
       --dest=org.kde.plasmashell /PlasmaShell \
       org.kde.PlasmaShell.evaluateScript \
-      string:"$(cat "$layout")" >> "$log" 2>&1; then
+      string:"$(cat "$layout")" 2>&1) && [[ "$reply" == *ONYX_LAYOUT_OK* ]]; then
+    printf '%s\n' "$reply" >> "$log"
     touch "$state/desktop-0.3-applied"
     echo "ONYX panel scripting call returned successfully" >> "$log"
     exit 0
   fi
+  printf '%s\n' "$reply" >> "$log"
   sleep 2
 done
 echo "Plasma did not accept the script; keeping current session" >> "$log"

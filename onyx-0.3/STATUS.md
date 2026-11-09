@@ -25,3 +25,31 @@ Do not treat a successful CI compose as proof that the UI works.
 - Updated panel setup to create a replacement before removing the old panels, to reduce the chance of leaving the user without a taskbar.
 - No ISO boot test has been performed. The boot-menu requirement remains open.
 - The visual ONYX Store/Settings are currently named launchers for real KDE tools, **not** custom applications.
+
+## Handoff checkpoint — 2026-11-08 (America/Toronto)
+
+- Found a critical build integration bug against the actual Fedora f45
+  config.sh: it ends with `exit 0`, so the previously appended ONYX hook
+  was unreachable. Added tools/prepare-kiwi.py to insert the hook before
+  that terminal exit and fail if upstream structure changes.
+- Explicitly include dbus-tools, Discover and Flatpak in the KIWI image.
+- Panel now uses Plasma 6 center alignment, fit-content length and
+  translucent opacity. Required widget creation is checked, failed partial
+  panels are removed, other monitors' panels are preserved, and a panel
+  version marker makes retries idempotent.
+- Session initialization now requires ONYX_LAYOUT_OK in the D-Bus reply
+  before writing its completion marker.
+- Splash now uses the existing ONYX SVG and a real animated 3-by-3 grid.
+  Uses the stage property expected by KSplashQML.
+- Verified locally: source preflight, shell syntax, executable hook-order
+  fixture, XML dependency injection, duplicate and changed-upstream rejection.
+  Panel logic is still awaiting a real Plasma session test.
+- GitHub run 42550203525 was building the earlier commit aa30a0e when
+  inspected. It does not validate these new changes.
+- Earlier failed run 42550189577 failed because validate-onyx-source.py was
+  missing in that intermediate commit; the current branch contains it.
+- No verified 0.3 ISO, VM boot, installer or hardware test in this session.
+- Next: inspect the new Actions build, verify the final hook runs in its
+  logs, test Plasma live, then implement custom Start/Settings/Welcome.
+- Development paused at the user's request; no unattended development is
+  promised. ONYX 0.2 and main were not changed.

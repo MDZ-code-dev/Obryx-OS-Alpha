@@ -1,17 +1,44 @@
-// ONYX OS 0.3 native Plasma layout. Build the new panel BEFORE deleting
-// the existing panels, so a failed widget creation does not leave a blank desktop.
-var dock = new Panel();
-dock.location = "bottom";
-dock.height = 54;
-dock.floating = true;
-dock.hiding = "none";
-dock.addWidget("org.kde.plasma.kickoff");
-dock.addWidget("org.kde.plasma.icontasks");
-dock.addWidget("org.kde.plasma.systemtray");
-dock.addWidget("org.kde.plasma.digitalclock");
-dock.floating = true;
-// Remove previous panels only after the replacement has been constructed.
-var oldPanels = panels();
-for (var i = oldPanels.length - 1; i >= 0; --i) {
-    if (oldPanels[i].id !== dock.id) oldPanels[i].remove();
-}
+// Plasma 6 scripting API. A failed replacement preserves the existing panels.
+(function () {
+    var previous = panels();
+    var dock = null;
+    for (var i = 0; i < previous.length; ++i) {
+        previous[i].currentConfigGroup = ["ONYX"];
+        if (previous[i].readConfig("layoutVersion", "") === "0.3.1") {
+            print("ONYX_LAYOUT_OK");
+            return;
+        }
+    }
+    try {
+        dock = new Panel();
+        dock.location = "bottom";
+        dock.height = 54;
+        dock.floating = true;
+        dock.alignment = "center";
+        dock.lengthMode = "fit";
+        dock.hiding = "none";
+        dock.opacity = "translucent";
+        var types = ["org.kde.plasma.kickoff", "org.kde.plasma.icontasks",
+                     "org.kde.plasma.systemtray", "org.kde.plasma.digitalclock"];
+        for (var j = 0; j < types.length; ++j) {
+            var widget = dock.addWidget(types[j]);
+            if (!widget || widget.type !== types[j]) {
+                throw new Error("Cannot create required widget: " + types[j]);
+            }
+            if (j === 0) {
+                widget.currentConfigGroup = ["General"];
+                widget.writeConfig("icon", "/usr/share/onyx-os/onyx-logo.svg");
+            }
+        }
+        dock.currentConfigGroup = ["ONYX"];
+        dock.writeConfig("layoutVersion", "0.3.1");
+    } catch (error) {
+        if (dock) dock.remove();
+        throw error;
+    }
+    // Preserve panels on other monitors. Only replace this screen's layout.
+    for (var k = 0; k < previous.length; ++k) {
+        if (previous[k].screen === dock.screen) previous[k].remove();
+    }
+    print("ONYX_LAYOUT_OK");
+}());
