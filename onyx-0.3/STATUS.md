@@ -18,3 +18,10 @@
 - Boot test on VM and ASUS laptop.
 
 Do not treat a successful CI compose as proof that the UI works.
+
+## Code review notes
+- 2026-11-08: Audited build script, KIWI hook, GitHub workflow, session initializer and panel script against the committed source.
+- Fixed a serious integration mistake: the ONYX splash-only look-and-feel package must **not** replace the complete Breeze Look-and-Feel package. Configure the splash independently through `/etc/xdg/ksplashrc`.
+- Updated panel setup to create a replacement before removing the old panels, to reduce the chance of leaving the user without a taskbar.
+- No ISO boot test has been performed. The boot-menu requirement remains open.
+- The visual ONYX Store/Settings are currently named launchers for real KDE tools, **not** custom applications.
