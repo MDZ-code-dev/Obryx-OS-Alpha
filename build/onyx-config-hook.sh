@@ -50,9 +50,12 @@ if [ ! -f /etc/xdg/autostart/onyx-desktop-setup.desktop ] || [ ! -f /usr/local/b
   exit 42
 fi
 chmod +x /usr/local/bin/onyx-desktop-setup
-# Apply ONYX splash to the session through the default KDE config.
+# Keep Breeze's complete Look-and-Feel package for stability.
+# Select the ONYX splash independently; our custom package only supplies splash QML.
 mkdir -p /etc/xdg
-if [ -f /etc/xdg/kdeglobals ]; then
-  sed -i 's/^LookAndFeelPackage=.*/LookAndFeelPackage=org.onyx.desktop/' /etc/xdg/kdeglobals
-fi
+cat > /etc/xdg/ksplashrc <<'ONYX_SPLASH'
+[KSplash]
+Engine=KSplashQML
+Theme=org.onyx.desktop
+ONYX_SPLASH
 echo "ONYX-OS: 0.3 splash and desktop assets embedded."
