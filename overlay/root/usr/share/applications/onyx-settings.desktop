@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=ONYX Settings
+GenericName=System Settings
+Comment=Configure ONYX desktop and hardware
+Exec=systemsettings
+Icon=preferences-system
+Terminal=false
+Categories=Settings;
+Keywords=wifi;display;theme;settings;
