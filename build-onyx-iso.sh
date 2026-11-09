@@ -33,6 +33,7 @@ fi
 SVG="$ROOT/overlay/root/usr/share/wallpapers/ONYX/contents/images/1920x1080.svg"
 PNG="$ROOT/overlay/root/usr/share/wallpapers/ONYX/contents/images/1920x1080.png"
 rsvg-convert -w 1920 -h 1080 -o "$PNG" "$SVG"
+bash "$ROOT/tools/render-shell-icons.sh"
 ART="$ROOT/overlay/root/usr/share/onyx-os"
 rsvg-convert -w 340 -h 145 -o "$ART/boot-logo.png" "$ROOT/overlay/root/usr/share/onyx-os/onyx-logo.svg"
 [[ -s "$PNG" ]] || { echo "ONYX wallpaper conversion failed"; exit 1; }

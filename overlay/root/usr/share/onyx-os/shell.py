@@ -6,22 +6,22 @@ from pathlib import Path
 
 import gi
 gi.require_version("Gtk", "3.0")
-from gi.repository import Gdk, Gio, GLib, Gtk
+from gi.repository import Gdk, GdkPixbuf, Gio, GLib, Gtk
 
 ROOT = Path(__file__).resolve().parent
 FAVORITES = (
-    ("Files", "org.kde.dolphin.desktop", "folder-symbolic", "ice"),
-    ("Browser", "org.mozilla.firefox.desktop", "web-browser-symbolic", "violet"),
-    ("Store", "onyx-store.desktop", "system-software-install-symbolic", "mint"),
-    ("Terminal", "org.kde.konsole.desktop", "utilities-terminal-symbolic", "slate"),
+    ("Files", "org.kde.dolphin.desktop", "folder", "ice"),
+    ("Browser", "org.mozilla.firefox.desktop", "compass", "violet"),
+    ("Store", "onyx-store.desktop", "store", "mint"),
+    ("Terminal", "org.kde.konsole.desktop", "terminal", "slate"),
 )
 SETTINGS = (
-    ("Display", "Resolution, scale and multiple screens", "video-display-symbolic", "kcm_kscreen"),
-    ("Sound", "Speakers, microphones and volume", "audio-volume-high-symbolic", "kcm_pulseaudio"),
-    ("Wi-Fi & network", "Connections and saved networks", "network-wireless-symbolic", "kcm_networkmanagement"),
-    ("Bluetooth", "Pair and manage devices", "bluetooth-active-symbolic", "kcm_bluetooth"),
-    ("Appearance", "Colors and desktop themes", "preferences-desktop-theme-symbolic", "kcm_colors"),
-    ("All settings", "Open the full system settings", "preferences-system-symbolic", None),
+    ("Display", "Resolution, scale and multiple screens", "monitor", "kcm_kscreen"),
+    ("Sound", "Speakers, microphones and volume", "volume-2", "kcm_pulseaudio"),
+    ("Wi-Fi & network", "Connections and saved networks", "wifi", "kcm_networkmanagement"),
+    ("Bluetooth", "Pair and manage devices", "bluetooth", "kcm_bluetooth"),
+    ("Appearance", "Colors and desktop themes", "palette", "kcm_colors"),
+    ("All settings", "Open the full system settings", "settings-2", None),
 )
 
 
@@ -35,9 +35,9 @@ def label(value, style):
 
 
 def icon(name, size):
-    result = Gtk.Image.new_from_icon_name(name, Gtk.IconSize.DIALOG)
-    result.set_pixel_size(size)
-    return result
+    image = GdkPixbuf.Pixbuf.new_from_file_at_scale(
+        str(ROOT / "icons" / (name + ".png")), size, size, True)
+    return Gtk.Image.new_from_pixbuf(image)
 
 
 def button(child, callback, style):
@@ -82,18 +82,18 @@ class Shell(Gtk.Application):
         self.window.add(frame)
         rail = styled(Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8), "rail")
         frame.pack_start(rail, False, False, 0)
-        brand = Gtk.Image.new_from_file(str(ROOT / "crystal.svg"))
+        brand = icon("crystal", 39)
         rail.pack_start(brand, False, False, 18)
         self.nav = {}
-        for key, title, glyph in (("home", "Home", "go-home-symbolic"),
-                                  ("apps", "Applications", "view-grid-symbolic"),
-                                  ("settings", "Settings", "preferences-system-symbolic")):
+        for key, title, glyph in (("home", "Home", "house"),
+                                  ("apps", "Applications", "layout-grid"),
+                                  ("settings", "Settings", "settings-2")):
             item = button(icon(glyph, 23), lambda k=key: self.show_page(k), "nav")
             item.set_tooltip_text(title)
             item.get_accessible().set_name(title)
             self.nav[key] = item
             rail.pack_start(item, False, False, 0)
-        close = button(icon("window-close-symbolic", 19), self.window.close, "nav")
+        close = button(icon("x", 19), self.window.close, "nav")
         close.set_tooltip_text("Close")
         rail.pack_end(close, False, False, 0)
         body = styled(Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12), "body")
@@ -213,7 +213,7 @@ class Shell(Gtk.Application):
             words.add(label(title, "row-title"))
             words.add(label(subtitle, "detail"))
             line.pack_start(words, True, True, 0)
-            line.add(icon("go-next-symbolic", 16))
+            line.add(icon("chevron-right", 16))
             rows.add(button(line, lambda t=title, m=module: self.setting_detail(t, m), "setting"))
         panel.pack_start(scroll(rows), True, True, 0)
 
