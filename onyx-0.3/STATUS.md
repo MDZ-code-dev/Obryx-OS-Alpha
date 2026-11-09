@@ -9,8 +9,10 @@
 - Blur and dark desktop defaults (dependent on compositor/theme support).
 - Fail-fast checks for desktop and splash assets in KIWI.
 
+- The x86 GRUB template defaults to Start ONYX OS. Install ONYX OS passes a live-session flag that launches the interactive installer. The compose checks the rendered GRUB menu before publishing.
+
 ## Still to implement or verify
-- Replace actual ISO GRUB menu labels with **Start ONYX OS** / **Install ONYX OS**, including installer boot handling.
+- Boot both **Start ONYX OS** and **Install ONYX OS** in a VM. Verify the desktop and interactive installer respectively.
 - Verify Plasma layout API, panel positioning, session startup and splash loading on the resulting live image.
 - Replace stock KDE launcher with a truly custom ONYX launcher UI.
 - Custom ONYX Settings front-end, notifications, login and installer branding.
@@ -23,7 +25,7 @@ Do not treat a successful CI compose as proof that the UI works.
 - 2026-11-08: Audited build script, KIWI hook, GitHub workflow, session initializer and panel script against the committed source.
 - Fixed a serious integration mistake: the ONYX splash-only look-and-feel package must **not** replace the complete Breeze Look-and-Feel package. Configure the splash independently through `/etc/xdg/ksplashrc`.
 - Updated panel setup to create a replacement before removing the old panels, to reduce the chance of leaving the user without a taskbar.
-- No ISO boot test has been performed. The boot-menu requirement remains open.
+- No ISO boot test has been performed.
 - The visual ONYX Store/Settings are currently named launchers for real KDE tools, **not** custom applications.
 
 ## Handoff checkpoint — 2026-11-08 (America/Toronto)

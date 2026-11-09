@@ -59,3 +59,7 @@ Engine=KSplashQML
 Theme=org.onyx.desktop
 ONYX_SPLASH
 echo "ONYX-OS: 0.3 splash and desktop assets embedded."
+if [ ! -x /usr/bin/liveinst ] || [ ! -x /usr/local/bin/onyx-live-installer ] || [ ! -s /etc/xdg/autostart/onyx-live-installer.desktop ]; then
+  echo "FATAL: interactive live installer or session launcher missing" >&2
+  exit 43
+fi
