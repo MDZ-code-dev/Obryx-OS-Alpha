@@ -10,6 +10,7 @@ if [[ "${1:-}" == "--check" ]]; then
     [[ -s "$file" ]] || { echo "Missing required ONYX file: $file"; exit 1; }
   done
   bash -n "$ROOT/build/onyx-config-hook.sh" "$ROOT/overlay/root/usr/local/bin/onyx-first-login" "$ROOT/overlay/root/usr/local/bin/onyx-desktop-setup"
+  python3 "$ROOT/tools/validate-onyx-source.py"
   [[ -s "$ROOT/overlay/root/usr/share/onyx-os/plasma-layout.js" ]] || exit 1
   [[ -s "$ROOT/overlay/root/usr/share/plasma/look-and-feel/org.onyx.desktop/contents/splash/Splash.qml" ]] || exit 1
   echo "ONYX 0.3 source files and scripts verified (not a boot test)."
@@ -35,6 +36,7 @@ rsvg-convert -w 1920 -h 1080 -o "$PNG" "$SVG"
 [[ -s "$PNG" ]] || { echo "ONYX wallpaper conversion failed"; exit 1; }
 file "$PNG" | grep -q 'PNG image data' || { echo "Generated wallpaper is not PNG"; exit 1; }
 chmod +x "$ROOT/overlay/root/usr/local/bin/onyx-desktop-setup"
+chmod +x "$ROOT/overlay/root/usr/local/bin/onyx-first-login"
 mkdir -p "$WORK/upstream/root"
 cp -a "$ROOT/overlay/root/." "$WORK/upstream/root/"
 # Fedora's config.sh runs after KIWI applies the overlay. Apply our default
