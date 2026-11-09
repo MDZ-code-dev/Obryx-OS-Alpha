@@ -65,7 +65,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -Eeuo pipefail
-          TAG="v0.3.1-alpha"
+          TAG="v0.3.1-alpha.2"
           ISO="output/ONYX-OS-0.3.1-Alpha-x86_64.iso"
           SHA="$ISO.sha256"
           # The ISO is created as root inside the Fedora Docker container.
@@ -106,3 +106,16 @@ jobs:
             done
           fi
           gh release view "$TAG" --json url --jq .url
+      - name: Boot the release in a diskless UEFI VM
+        timeout-minutes: 25
+        run: |
+          sudo apt-get install -y --no-install-recommends qemu-system-x86 ovmf tesseract-ocr python3-pil
+          sudo /usr/bin/python3 tools/test-live-desktop.py output/ONYX-OS-0.3.1-Alpha-x86_64.iso
+      - name: Save live session screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: onyx-live-session
+          path: vm-test/*.png
+          if-no-files-found: ignore
+          retention-days: 7

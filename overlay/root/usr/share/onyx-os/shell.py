@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 """ONYX Home and Settings for a native Plasma session."""
+import subprocess
 import sys
 from pathlib import Path
 
@@ -115,6 +116,9 @@ class Shell(Gtk.Application):
 
     def key_press(self, widget, event):
         if event.keyval == Gdk.KEY_Escape:
+            if self.stack.get_visible_child_name() == "detail":
+                self.show_page("settings")
+                return True
             widget.close()
             return True
         if event.state & Gdk.ModifierType.CONTROL_MASK and event.keyval == Gdk.KEY_f:
@@ -176,7 +180,7 @@ class Shell(Gtk.Application):
         listing.set_selection_mode(Gtk.SelectionMode.SINGLE)
         apps = sorted(Gio.AppInfo.get_all(), key=lambda a: a.get_display_name().casefold())
         for app in apps:
-            if not app.should_show() or app.get_id() in ("onyx-home.desktop", "org.kde.systemsettings.desktop"):
+            if not app.should_show() or app.get_id() in ("onyx-home.desktop", "org.kde.systemsettings.desktop", "liveinst.desktop") or app.get_executable().endswith("/liveinst"):
                 continue
             row = Gtk.ListBoxRow()
             row.info = app
@@ -210,8 +214,79 @@ class Shell(Gtk.Application):
             words.add(label(subtitle, "detail"))
             line.pack_start(words, True, True, 0)
             line.add(icon("go-next-symbolic", 16))
-            rows.add(button(line, lambda m=module: self.open_setting(m), "setting"))
+            rows.add(button(line, lambda t=title, m=module: self.setting_detail(t, m), "setting"))
         panel.pack_start(scroll(rows), True, True, 0)
+
+    def setting_detail(self, title, module):
+        if not module or module not in ("kcm_networkmanagement", "kcm_pulseaudio", "kcm_colors"):
+            self.open_setting(module)
+            return
+        previous = self.stack.get_child_by_name("detail")
+        if previous:
+            self.stack.remove(previous)
+        body = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
+        back = button(label("‹  Settings", "section"), lambda: self.show_page("settings"), "setting")
+        back.set_halign(Gtk.Align.START)
+        body.add(back)
+        body.add(label(title, "heading"))
+        if module == "kcm_pulseaudio":
+            current = self.read_value(["wpctl", "get-volume", "@DEFAULT_AUDIO_SINK@"])
+            if current.startswith("Volume:"):
+                percent = round(float(current.split()[1]) * 100)
+                slider = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 0, max(100, percent), 1)
+                slider.set_digits(0)
+                slider.set_value(percent)
+                slider.connect("button-release-event", lambda control, _: self.set_volume(control))
+                slider.connect("key-release-event", lambda control, _: self.set_volume(control))
+                body.add(label("Output volume (%)", "row-title"))
+                body.add(slider)
+        elif module == "kcm_networkmanagement":
+            state = self.read_value(["nmcli", "-t", "radio", "wifi"])
+            if state in ("enabled", "disabled"):
+                row = Gtk.Box(spacing=16)
+                row.pack_start(label("Wi-Fi", "row-title"), True, True, 0)
+                toggle = Gtk.Switch(active=state == "enabled")
+                toggle.connect("state-set", lambda _, active: not self.apply_value(
+                    ["nmcli", "radio", "wifi", "on" if active else "off"]))
+                row.pack_end(toggle, False, False, 0)
+                body.add(row)
+        else:
+            value = self.read_value(["kreadconfig6", "--file", "kdeglobals", "--group", "KDE",
+                                     "--key", "AnimationDurationFactor", "--default", "1"])
+            row = Gtk.Box(spacing=16)
+            row.pack_start(label("Desktop animations", "row-title"), True, True, 0)
+            toggle = Gtk.Switch(active=value not in ("0", "0.0"))
+            toggle.connect("state-set", lambda _, active: not self.apply_value(
+                ["kwriteconfig6", "--notify", "--file", "kdeglobals", "--group", "KDE",
+                 "--key", "AnimationDurationFactor", "0.75" if active else "0"]))
+            row.pack_end(toggle, False, False, 0)
+            body.add(row)
+        more = button(label("More " + title.lower() + " settings  ›", "row-title"),
+                      lambda: self.open_setting(module), "setting")
+        body.add(more)
+        self.stack.add_named(body, "detail")
+        body.show_all()
+        self.stack.set_visible_child_name("detail")
+
+    def read_value(self, args):
+        try:
+            return subprocess.run(args, text=True, capture_output=True, check=True,
+                                  timeout=2).stdout.strip()
+        except (OSError, subprocess.SubprocessError):
+            return ""
+
+    def apply_value(self, args):
+        try:
+            subprocess.run(args, capture_output=True, check=True, timeout=3)
+            return True
+        except (OSError, subprocess.SubprocessError):
+            self.report("Could not apply this setting. Open its full settings below.")
+            return False
+
+    def set_volume(self, control):
+        self.apply_value(["wpctl", "set-volume", "@DEFAULT_AUDIO_SINK@",
+                          str(round(control.get_value())) + "%"])
+        return False
 
     def open_setting(self, module):
         try:

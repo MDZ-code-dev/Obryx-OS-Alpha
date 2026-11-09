@@ -25,6 +25,7 @@
             if (!widget || widget.type !== types[j]) {
                 throw new Error("Cannot create required widget: " + types[j]);
             }
+            if (j === 0) widget.globalShortcut = "Alt+F1";
             if (j === 1) {
                 widget.currentConfigGroup = ["General"];
                 widget.writeConfig("launchers", ["applications:org.kde.dolphin.desktop", "applications:onyx-store.desktop", "applications:onyx-settings.desktop"]);

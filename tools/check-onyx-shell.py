@@ -24,4 +24,6 @@ for page in ("home", "apps", "settings"):
     capture = shell.Gdk.pixbuf_get_from_window(window, 0, 0, window.get_width(), window.get_height())
     assert capture is not None
     capture.savev(str(output / (page + ".png")), "png", [], [])
+app.setting_detail("Appearance", "kcm_colors")
+assert app.stack.get_visible_child_name() == "detail"
 app.window.destroy()
