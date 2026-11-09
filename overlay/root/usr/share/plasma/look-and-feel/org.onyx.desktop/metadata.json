@@ -1,0 +1,10 @@
+{
+  "KPlugin": {
+    "Id": "org.onyx.desktop",
+    "Name": "ONYX OS",
+    "Description": "ONYX OS desktop and startup",
+    "Version": "0.3",
+    "License": "GPL-3.0-or-later"
+  },
+  "X-Plasma-API": "declarativeappletscript"
+}
