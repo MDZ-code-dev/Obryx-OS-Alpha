@@ -5,7 +5,7 @@ import re
 import sys
 import xml.etree.ElementTree as ET
 
-PACKAGES = ("dbus-tools", "plasma-discover", "flatpak", "anaconda-live")
+PACKAGES = ("dbus-tools", "plasma-discover", "flatpak", "anaconda-live", "gtk3", "python3-gobject", "plasma5support", "plymouth-theme-spinner")
 
 
 def customize_boot_menu(template: Path):
@@ -20,7 +20,7 @@ def customize_boot_menu(template: Path):
                              r'\1 onyx.install=1', start.replace('Start ONYX OS', 'Install ONYX OS', 1))
     if count != 1 or '${boot_options}' not in start:
         raise ValueError("Unexpected live kernel command in the Fedora GRUB template")
-    menu = menu.replace(original, start + "\n" + install)
+    menu = menu.replace(original, start + "\n" + install).replace("${title}", "ONYX OS")
     menu, count = re.subn(r'(?m)^set default=.*$', 'set default="0"', menu)
     if count != 1:
         raise ValueError("Expected one GRUB default entry setting")

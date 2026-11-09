@@ -1,0 +1,5 @@
+[BlurBehindEffect]
+enabled=true
+
+[ContrastEffect]
+enabled=false

@@ -4,18 +4,27 @@ set -u
 state="${XDG_STATE_HOME:-$HOME/.local/state}/onyx-os"
 mkdir -p "$state" 2>/dev/null || exit 0
 log="$state/first-login.log"
-[[ -f "$state/first-login-applied" ]] && exit 0
+[[ -f "$state/first-login-glass-applied" ]] && exit 0
 printf 'ONYX first login setup started: %s\n' "$(date -Is)" >> "$log"
+desktop_dir=$(xdg-user-dir DESKTOP)
+if [[ -n "$desktop_dir" && -d "$desktop_dir" ]]; then
+  for shortcut in "$desktop_dir"/*.desktop; do
+    [[ -f "$shortcut" ]] || continue
+    if grep -Eq '^Exec=.*(liveinst|anaconda)|^Name=Install to Hard Drive$' "$shortcut"; then
+      rm -f -- "$shortcut"
+    fi
+  done
+fi
 wall="/usr/share/wallpapers/ONYX/contents/images/1920x1080.png"
 [[ -s "$wall" ]] || { echo "Wallpaper missing" >> "$log"; exit 1; }
 if command -v plasma-apply-colorscheme >/dev/null; then
-  plasma-apply-colorscheme BreezeDark >> "$log" 2>&1 || true
+  plasma-apply-colorscheme OnyxGlass >> "$log" 2>&1 || true
 fi
 if command -v plasma-apply-desktoptheme >/dev/null; then
-  plasma-apply-desktoptheme breeze-dark >> "$log" 2>&1 || true
+  plasma-apply-desktoptheme onyx-glass >> "$log" 2>&1 || true
 fi
 if command -v kwriteconfig6 >/dev/null; then
-  kwriteconfig6 --file kdeglobals --group General --key ColorScheme BreezeDark >> "$log" 2>&1 || true
+  kwriteconfig6 --file kdeglobals --group General --key ColorScheme OnyxGlass >> "$log" 2>&1 || true
 fi
 if ! command -v plasma-apply-wallpaperimage >/dev/null; then
   echo "plasma-apply-wallpaperimage not available" >> "$log"
@@ -25,7 +34,7 @@ fi
 for attempt in 1 2 3 4 5 6 7 8; do
   if plasma-apply-wallpaperimage "$wall" >> "$log" 2>&1; then
     echo "ONYX wallpaper successfully applied" >> "$log"
-    touch "$state/first-login-applied"
+    touch "$state/first-login-glass-applied"
     exit 0
   fi
   sleep 2

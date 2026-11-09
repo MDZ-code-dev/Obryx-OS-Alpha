@@ -33,6 +33,8 @@ fi
 SVG="$ROOT/overlay/root/usr/share/wallpapers/ONYX/contents/images/1920x1080.svg"
 PNG="$ROOT/overlay/root/usr/share/wallpapers/ONYX/contents/images/1920x1080.png"
 rsvg-convert -w 1920 -h 1080 -o "$PNG" "$SVG"
+ART="$ROOT/overlay/root/usr/share/onyx-os"
+rsvg-convert -w 340 -h 145 -o "$ART/boot-logo.png" "$ROOT/overlay/root/usr/share/onyx-os/onyx-logo.svg"
 [[ -s "$PNG" ]] || { echo "ONYX wallpaper conversion failed"; exit 1; }
 file "$PNG" | grep -q 'PNG image data' || { echo "Generated wallpaper is not PNG"; exit 1; }
 chmod +x "$ROOT/overlay/root/usr/local/bin/onyx-desktop-setup"
@@ -52,7 +54,7 @@ for dir in "$OUT" "$ROOT/output-build" "$WORK/upstream/output-build"; do
 done
 mapfile -t ISOS < <(find "${IMAGE_DIRS[@]}" -maxdepth 2 -type f -name '*.iso' -print | sort -u)
 [[ "${#ISOS[@]}" -eq 1 ]] || { echo "Expected one ISO, found ${#ISOS[@]}"; exit 1; }
-TARGET="$OUT/ONYX-OS-0.3-Alpha-x86_64.iso"
+TARGET="$OUT/ONYX-OS-0.3.1-Alpha-x86_64.iso"
 [[ "${ISOS[0]}" == "$TARGET" ]] || mv -- "${ISOS[0]}" "$TARGET"
 [[ -s "$TARGET" ]] || { echo "Empty ISO"; exit 1; }
 # Inspect the authored image before producing a downloadable release.

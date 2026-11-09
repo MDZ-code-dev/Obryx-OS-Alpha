@@ -4,11 +4,11 @@ set -u
 state="${XDG_STATE_HOME:-$HOME/.local/state}/onyx-os"
 mkdir -p "$state" || exit 1
 log="$state/desktop-setup.log"
-[[ -e "$state/desktop-0.3-applied" ]] && exit 0
+[[ -e "$state/desktop-0.3.1-applied" ]] && exit 0
 printf 'ONYX 0.3 setup started: %s\n' "$(date -Is)" >> "$log"
 
 if command -v plasma-apply-colorscheme >/dev/null 2>&1; then
-  plasma-apply-colorscheme BreezeDark >> "$log" 2>&1 || true
+  plasma-apply-colorscheme OnyxGlass >> "$log" 2>&1 || true
 fi
 if command -v kwriteconfig6 >/dev/null 2>&1; then
   kwriteconfig6 --file kwinrc --group Plugins --key blurEnabled true || true
@@ -28,7 +28,7 @@ for attempt in $(seq 1 20); do
       org.kde.PlasmaShell.evaluateScript \
       string:"$(cat "$layout")" 2>&1) && [[ "$reply" == *ONYX_LAYOUT_OK* ]]; then
     printf '%s\n' "$reply" >> "$log"
-    touch "$state/desktop-0.3-applied"
+    touch "$state/desktop-0.3.1-applied"
     echo "ONYX panel scripting call returned successfully" >> "$log"
     exit 0
   fi

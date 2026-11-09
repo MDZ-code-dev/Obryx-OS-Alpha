@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=ONYX Home
+Exec=/usr/bin/python3 /usr/share/onyx-os/shell.py home
+Icon=/usr/share/onyx-os/crystal.svg
+Categories=System;
+Terminal=false

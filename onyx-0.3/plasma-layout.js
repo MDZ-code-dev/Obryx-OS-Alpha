@@ -1,18 +1,44 @@
-// ONYX OS 0.3: initial KDE Plasma desktop layout.
-// Executed through org.kde.PlasmaShell.evaluateScript.
-// Uses native Plasma widgets so the launcher, notifications and apps remain functional.
-var existingPanels = panels();
-for (var i = existingPanels.length - 1; i >= 0; --i) {
-  existingPanels[i].remove();
-}
-var dock = new Panel();
-dock.location = "bottom";
-dock.height = 52;
-dock.floating = true;
-dock.hiding = "none";
-dock.alignment = "center";
-dock.lengthMode = "fit";
-dock.addWidget("org.kde.plasma.kickoff");
-dock.addWidget("org.kde.plasma.icontasks");
-dock.addWidget("org.kde.plasma.systemtray");
-dock.addWidget("org.kde.plasma.digitalclock");
+// Plasma 6 scripting API. A failed replacement preserves the existing panels.
+(function () {
+    var previous = panels();
+    var dock = null;
+    for (var i = 0; i < previous.length; ++i) {
+        previous[i].currentConfigGroup = ["ONYX"];
+        if (previous[i].readConfig("layoutVersion", "") === "0.3.2") {
+            print("ONYX_LAYOUT_OK");
+            return;
+        }
+    }
+    try {
+        dock = new Panel();
+        dock.location = "bottom";
+        dock.height = 54;
+        dock.floating = true;
+        dock.alignment = "center";
+        dock.lengthMode = "fit";
+        dock.hiding = "none";
+        dock.opacity = "translucent";
+        var types = ["org.onyx.home", "org.kde.plasma.icontasks",
+                     "org.kde.plasma.systemtray", "org.kde.plasma.digitalclock"];
+        for (var j = 0; j < types.length; ++j) {
+            var widget = dock.addWidget(types[j]);
+            if (!widget || widget.type !== types[j]) {
+                throw new Error("Cannot create required widget: " + types[j]);
+            }
+            if (j === 1) {
+                widget.currentConfigGroup = ["General"];
+                widget.writeConfig("launchers", ["applications:org.kde.dolphin.desktop", "applications:onyx-store.desktop", "applications:onyx-settings.desktop"]);
+            }
+        }
+        dock.currentConfigGroup = ["ONYX"];
+        dock.writeConfig("layoutVersion", "0.3.2");
+    } catch (error) {
+        if (dock) dock.remove();
+        throw error;
+    }
+    // Preserve panels on other monitors. Only replace this screen's layout.
+    for (var k = 0; k < previous.length; ++k) {
+        if (previous[k].screen === dock.screen) previous[k].remove();
+    }
+    print("ONYX_LAYOUT_OK");
+}());

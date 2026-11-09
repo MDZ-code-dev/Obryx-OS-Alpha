@@ -1,0 +1,24 @@
+[Plymouth Theme]
+Name=ONYX OS
+Description=ONYX crystal boot screen
+ModuleName=two-step
+
+[two-step]
+ImageDir=/usr/share/plymouth/themes/onyx
+HorizontalAlignment=.5
+VerticalAlignment=.65
+WatermarkHorizontalAlignment=.5
+WatermarkVerticalAlignment=.43
+BackgroundStartColor=0x0b1019
+BackgroundEndColor=0x0b1019
+MessageBelowAnimation=true
+DialogClearsFirmwareBackground=true
+
+[boot-up]
+UseFirmwareBackground=false
+
+[shutdown]
+UseFirmwareBackground=false
+
+[reboot]
+UseFirmwareBackground=false

@@ -1,0 +1,226 @@
+#!/usr/bin/python3
+"""ONYX Home and Settings for a native Plasma session."""
+import sys
+from pathlib import Path
+
+import gi
+gi.require_version("Gtk", "3.0")
+from gi.repository import Gdk, Gio, GLib, Gtk
+
+ROOT = Path(__file__).resolve().parent
+FAVORITES = (
+    ("Files", "org.kde.dolphin.desktop", "folder-symbolic", "ice"),
+    ("Browser", "org.mozilla.firefox.desktop", "web-browser-symbolic", "violet"),
+    ("Store", "onyx-store.desktop", "system-software-install-symbolic", "mint"),
+    ("Terminal", "org.kde.konsole.desktop", "utilities-terminal-symbolic", "slate"),
+)
+SETTINGS = (
+    ("Display", "Resolution, scale and multiple screens", "video-display-symbolic", "kcm_kscreen"),
+    ("Sound", "Speakers, microphones and volume", "audio-volume-high-symbolic", "kcm_pulseaudio"),
+    ("Wi-Fi & network", "Connections and saved networks", "network-wireless-symbolic", "kcm_networkmanagement"),
+    ("Bluetooth", "Pair and manage devices", "bluetooth-active-symbolic", "kcm_bluetooth"),
+    ("Appearance", "Colors and desktop themes", "preferences-desktop-theme-symbolic", "kcm_colors"),
+    ("All settings", "Open the full system settings", "preferences-system-symbolic", None),
+)
+
+
+def styled(widget, name):
+    widget.get_style_context().add_class(name)
+    return widget
+
+
+def label(value, style):
+    return styled(Gtk.Label(label=value, xalign=0), style)
+
+
+def icon(name, size):
+    result = Gtk.Image.new_from_icon_name(name, Gtk.IconSize.DIALOG)
+    result.set_pixel_size(size)
+    return result
+
+
+def button(child, callback, style):
+    item = styled(Gtk.Button(), style)
+    item.add(child)
+    item.connect("clicked", lambda *_: callback())
+    return item
+
+
+def scroll(content):
+    viewport = Gtk.ScrolledWindow()
+    viewport.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+    viewport.add(content)
+    return viewport
+
+
+class Shell(Gtk.Application):
+    def __init__(self, page):
+        super().__init__(application_id="org.onyx.Desktop." + page.capitalize())
+        self.page = page
+        self.window = None
+
+    def do_activate(self):
+        if self.window:
+            self.window.present()
+            return
+        self.window = Gtk.ApplicationWindow(application=self)
+        self.window.set_title("ONYX Settings" if self.page == "settings" else "ONYX Home")
+        screen = self.window.get_screen()
+        visual = screen.get_rgba_visual()
+        if visual:
+            self.window.set_visual(visual)
+        css = Gtk.CssProvider()
+        css.load_from_path(str(ROOT / "shell.css"))
+        Gtk.StyleContext.add_provider_for_screen(screen, css, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+        self.window.set_default_size(890, 560)
+        self.window.set_position(Gtk.WindowPosition.CENTER)
+        self.window.set_decorated(False)
+        self.window.connect("key-press-event", self.key_press)
+        self.window.connect("destroy", lambda *_: setattr(self, "window", None))
+        frame = styled(Gtk.Box(), "frame")
+        self.window.add(frame)
+        rail = styled(Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8), "rail")
+        frame.pack_start(rail, False, False, 0)
+        brand = Gtk.Image.new_from_file(str(ROOT / "crystal.svg"))
+        rail.pack_start(brand, False, False, 18)
+        self.nav = {}
+        for key, title, glyph in (("home", "Home", "go-home-symbolic"),
+                                  ("apps", "Applications", "view-grid-symbolic"),
+                                  ("settings", "Settings", "preferences-system-symbolic")):
+            item = button(icon(glyph, 23), lambda k=key: self.show_page(k), "nav")
+            item.set_tooltip_text(title)
+            item.get_accessible().set_name(title)
+            self.nav[key] = item
+            rail.pack_start(item, False, False, 0)
+        close = button(icon("window-close-symbolic", 19), self.window.close, "nav")
+        close.set_tooltip_text("Close")
+        rail.pack_end(close, False, False, 0)
+        body = styled(Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12), "body")
+        frame.pack_start(body, True, True, 0)
+        self.stack = Gtk.Stack()
+        self.stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE)
+        self.stack.set_transition_duration(170)
+        body.pack_start(self.stack, True, True, 0)
+        self.status = label("", "error")
+        body.pack_end(self.status, False, False, 0)
+        for key, title in (("home", "Home"), ("apps", "Applications"), ("settings", "Settings")):
+            panel = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
+            panel.pack_start(label("ONYX OS", "wordmark"), False, False, 0)
+            panel.pack_start(label(title, "heading"), False, False, 0)
+            self.stack.add_named(panel, key)
+            getattr(self, "build_" + key)(panel)
+        self.window.show_all()
+        self.show_page(self.page)
+        self.window.present()
+
+    def key_press(self, widget, event):
+        if event.keyval == Gdk.KEY_Escape:
+            widget.close()
+            return True
+        if event.state & Gdk.ModifierType.CONTROL_MASK and event.keyval == Gdk.KEY_f:
+            self.show_page("apps")
+            return True
+        return False
+
+    def show_page(self, key):
+        self.stack.set_visible_child_name(key)
+        self.status.hide()
+        self.window.set_title("ONYX " + {"home":"Home", "apps":"Applications", "settings":"Settings"}[key])
+        for name, item in self.nav.items():
+            ctx = item.get_style_context()
+            (ctx.add_class if name == key else ctx.remove_class)("selected")
+        if key == "apps":
+            self.search.grab_focus()
+
+    def report(self, message):
+        self.status.set_text(message)
+        self.status.show()
+
+    def launch(self, info):
+        if info is None:
+            self.report("This application is unavailable.")
+            return
+        try:
+            info.launch([], self.window.get_display().get_app_launch_context())
+            self.window.close()
+        except GLib.Error as exc:
+            self.report(exc.message)
+
+    def favorite(self, desktop):
+        try:
+            info = Gio.DesktopAppInfo.new(desktop)
+        except TypeError:
+            info = None
+        if info is None and desktop == "org.mozilla.firefox.desktop":
+            info = Gio.AppInfo.get_default_for_uri_scheme("https")
+        self.launch(info)
+
+    def build_home(self, panel):
+        panel.pack_start(label("Quick launch", "section"), False, False, 0)
+        cards = Gtk.Grid(column_spacing=12, row_spacing=12, column_homogeneous=True)
+        for i, (name, desktop, glyph, color) in enumerate(FAVORITES):
+            content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=24)
+            art = icon(glyph, 38)
+            art.set_halign(Gtk.Align.START)
+            content.add(art)
+            content.add(label(name, "card-title"))
+            tile = button(content, lambda d=desktop: self.favorite(d), "card")
+            styled(tile, color)
+            cards.attach(tile, i % 2, i // 2, 1, 1)
+        panel.pack_start(scroll(cards), True, True, 0)
+
+    def build_apps(self, panel):
+        self.search = Gtk.SearchEntry(placeholder_text="Search installed applications")
+        panel.pack_start(self.search, False, False, 0)
+        listing = Gtk.ListBox()
+        listing.set_selection_mode(Gtk.SelectionMode.SINGLE)
+        apps = sorted(Gio.AppInfo.get_all(), key=lambda a: a.get_display_name().casefold())
+        for app in apps:
+            if not app.should_show() or app.get_id() in ("onyx-home.desktop", "org.kde.systemsettings.desktop"):
+                continue
+            row = Gtk.ListBoxRow()
+            row.info = app
+            row.search_text = (app.get_display_name() + " " + (app.get_description() or "")).casefold()
+            line = styled(Gtk.Box(spacing=15), "line")
+            if app.get_icon():
+                line.add(Gtk.Image.new_from_gicon(app.get_icon(), Gtk.IconSize.LARGE_TOOLBAR))
+            line.add(label(app.get_display_name(), "row-title"))
+            row.add(line)
+            listing.add(row)
+        listing.set_filter_func(lambda row: self.search.get_text().casefold() in row.search_text)
+        listing.connect("row-activated", lambda _, row: self.launch(row.info))
+        self.search.connect("search-changed", lambda *_: listing.invalidate_filter())
+        self.search.connect("activate", lambda *_: self.first_match(listing))
+        panel.pack_start(scroll(listing), True, True, 0)
+
+    def first_match(self, listing):
+        listing.invalidate_filter()
+        for row in listing.get_children():
+            if row.get_child_visible():
+                self.launch(row.info)
+                return
+
+    def build_settings(self, panel):
+        rows = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+        for title, subtitle, glyph, module in SETTINGS:
+            line = Gtk.Box(spacing=16)
+            line.add(icon(glyph, 25))
+            words = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=3)
+            words.add(label(title, "row-title"))
+            words.add(label(subtitle, "detail"))
+            line.pack_start(words, True, True, 0)
+            line.add(icon("go-next-symbolic", 16))
+            rows.add(button(line, lambda m=module: self.open_setting(m), "setting"))
+        panel.pack_start(scroll(rows), True, True, 0)
+
+    def open_setting(self, module):
+        try:
+            Gio.Subprocess.new(["systemsettings"] + ([module] if module else []),
+                               Gio.SubprocessFlags.NONE)
+        except GLib.Error as exc:
+            self.report(exc.message)
+
+
+if __name__ == "__main__":
+    page = "settings" if sys.argv[1:] == ["settings"] else "home"
+    sys.exit(Shell(page).run(sys.argv[:1]))

@@ -1,32 +1,28 @@
 @echo off
-setlocal EnableDelayedExpansion
+setlocal
 cd /d "%~dp0"
-set "ISO=ONYX-OS-0.2-Alpha-x86_64.iso"
-if not exist "%ISO%.part00" (
-  echo Could not find ONYX OS ISO parts in this folder.
-  echo Download all .part00, .part01, etc. files from the same GitHub Release.
-  pause
-  exit /b 1
-)
-set "PIECES="
-for /f "delims=" %%F in ('dir /b /on "%ISO%.part*"') do (
-  if defined PIECES (
-    set "PIECES=!PIECES!+%%F"
-  ) else (
-    set "PIECES=%%F"
-  )
-)
-echo Reassembling %ISO% ...
-copy /b !PIECES! "%ISO%"
-if errorlevel 1 (
-  echo ERROR: Could not combine the ISO parts.
-  pause
-  exit /b 1
-)
-echo.
-echo Expected SHA256 checksum is recorded in %ISO%.sha256
-certutil -hashfile "%ISO%" SHA256
-echo.
-echo Compare the computed SHA256 with the checksum file before using Rufus.
-echo The ISO has not yet been boot-tested.
+set "ISO=ONYX-OS-0.3.1-Alpha-x86_64.iso"
+if not exist "%ISO%.sha256" goto missing
+if not exist "%ISO%.part00" goto missing
+if exist "%ISO%" goto verify
+copy /b "%ISO%.part*" "%ISO%.assembling" >nul
+if errorlevel 1 goto failed
+powershell -NoProfile -Command "$expected=((Get-Content -LiteralPath ($env:ISO+'.sha256') -Raw).Trim() -split '\s+')[0]; if ((Get-FileHash -LiteralPath ($env:ISO+'.assembling')).Hash -ne $expected) {exit 1}"
+if errorlevel 1 goto failed
+move /y "%ISO%.assembling" "%ISO%" >nul
+if errorlevel 1 goto failed
+:verify
+powershell -NoProfile -Command "$expected=((Get-Content -LiteralPath ($env:ISO+'.sha256') -Raw).Trim() -split '\s+')[0]; if ((Get-FileHash -LiteralPath $env:ISO).Hash -ne $expected) {exit 1}"
+if errorlevel 1 goto failed
+echo ISO verified. Select %ISO% in Rufus.
 pause
+exit /b 0
+:missing
+echo Download all numbered parts and the SHA256 file into this folder.
+pause
+exit /b 1
+:failed
+if exist "%ISO%.assembling" del "%ISO%.assembling"
+echo Assembly or checksum failed. Check free space and download every numbered part. If a previous ISO exists, move it aside before retrying.
+pause
+exit /b 1
