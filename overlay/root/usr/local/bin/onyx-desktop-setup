@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# ONYX 0.3: idempotent per-user KDE Plasma initialization.
+set -u
+state="${XDG_STATE_HOME:-$HOME/.local/state}/onyx-os"
+mkdir -p "$state"
+log="$state/desktop-setup.log"
+[[ -e "$state/desktop-0.3-applied" ]] && exit 0
+echo "ONYX desktop 0.3: $(date -Is)" >> "$log"
+if command -v plasma-apply-colorscheme >/dev/null; then
+  plasma-apply-colorscheme BreezeDark >> "$log" 2>&1 || true
+fi
+if command -v kwriteconfig6 >/dev/null; then
+  kwriteconfig6 --file kwinrc --group Plugins --key blurEnabled true
+  kwriteconfig6 --file kwinrc --group Plugins --key contrastEnabled true
+  kwriteconfig6 --file kdeglobals --group KDE --key AnimationDurationFactor 0.75
+  kwriteconfig6 --file plasmarc --group Theme --key name breeze-dark
+fi
+# Plasma Shell exposes evaluateScript via D-Bus after it has started.
+layout="/usr/share/onyx-os/plasma-layout.js"
+if [[ ! -s "$layout" ]]; then
+  echo "Missing ONYX layout" >> "$log"
+  exit 1
+fi
+for attempt in $(seq 1 15); do
+  if command -v qdbus6 >/dev/null && qdbus6 org.kde.plasmashell /PlasmaShell org.kde.PlasmaShell.evaluateScript "$(cat "$layout")" >> "$log" 2>&1; then
+    touch "$state/desktop-0.3-applied"
+    echo "ONYX layout applied" >> "$log"
+    exit 0
+  fi
+  if command -v dbus-send >/dev/null && dbus-send --session --dest=org.kde.plasmashell --type=method_call /PlasmaShell org.kde.PlasmaShell.evaluateScript string:"$(cat "$layout")" >> "$log" 2>&1; then
+    touch "$state/desktop-0.3-applied"
+    echo "ONYX layout applied via dbus-send" >> "$log"
+    exit 0
+  fi
+  sleep 2
+done
+echo "Plasma scripting unavailable; original desktop retained" >> "$log"
+exit 1
