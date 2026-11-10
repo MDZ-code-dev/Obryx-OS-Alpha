@@ -118,6 +118,7 @@ def click_home():
     for down in (True, False):
         command("input-send-event", events=[{"type": "btn", "data": {"button": "left", "down": down}}])
         time.sleep(0.1)
+    return x, y, width, height
 
 
 def wait_for(name, pattern, seconds):
@@ -171,9 +172,11 @@ try:
         raise RuntimeError("Upstream installer welcome is covering the live desktop")
     # Activate the installed panel applet. Building the GTK window directly
     # would miss a broken Plasma widget or panel layout.
-    click_home()
+    dock_x, dock_y, screen_width, screen_height = click_home()
     if not wait_for("home", r"(?s)\bFiles\b.*\bBrowser\b.*\bStore\b.*\bTerminal\b", 60):
         raise RuntimeError("Clicking the ONYX dock crystal did not open Home")
+    if not wait_for("home", r"ONYX.*0[.,]4", 10):
+        raise RuntimeError("Home does not visibly identify ONYX 0.4")
     keys("ctrl-f")
     if not wait_for("apps", r"Applications|Search installed applications", 30):
         raise RuntimeError("Application search did not open from Home")
@@ -182,7 +185,30 @@ try:
     keys("ret")
     if not wait_for("settings", r"(?s)\bDisplay\b.*\bSound\b.*\bBluetooth\b|Resolution,?\s+scale.*Speakers", 45):
         raise RuntimeError("ONYX Settings did not open from application search")
-    print("UEFI boot, Dolphin, ONYX Home, app search and Settings passed.")
+    keys("alt-f4")
+    time.sleep(1)
+    # Measure the dock, away from its clock, before and after hovering an app.
+    command("input-send-event", events=[
+        {"type": "abs", "data": {"axis": "x", "value": 1000}},
+        {"type": "abs", "data": {"axis": "y", "value": 1000}}])
+    time.sleep(1)
+    screen("dock-idle")
+    command("input-send-event", events=[
+        {"type": "abs", "data": {"axis": "x", "value": round((dock_x + 64) * 32767 / (screen_width - 1))}},
+        {"type": "abs", "data": {"axis": "y", "value": round(dock_y * 32767 / (screen_height - 1))}}])
+    time.sleep(0.4)
+    screen("dock-hover")
+    idle = cv2.imread(str(artifacts / "dock-idle.png"))
+    hover = cv2.imread(str(artifacts / "dock-hover.png"))
+    region = (slice(-110, None), slice(dock_x + 24, dock_x + 200))
+    difference = cv2.absdiff(idle[region], hover[region])
+    changed = (difference.max(axis=2) > 20).sum()
+    if changed < 150:
+        raise RuntimeError(f"Dock hover did not visibly animate ({changed} pixels)")
+    journal_text = (artifacts / "journal.log").read_text(errors="replace")
+    if "ONYX_VISUAL_READY version=0.4.0" not in journal_text:
+        raise RuntimeError("The live session did not confirm both glass effects and the new layout")
+    print(f"ONYX 0.4 UEFI, Home, search, Settings, loaded glass effects and hover passed ({changed} pixels).")
 except RuntimeError:
     journal = artifacts / "journal.log"
     if journal.is_file():

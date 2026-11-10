@@ -1,12 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48"><defs>
 </defs>
-<path id="topleft" d="M0 12 Q0 0 12 0 V12Z" fill="#172334" fill-opacity=".79"/>
-<path id="top" d="M12 0h24v12h-24z" fill="#172334" fill-opacity=".79"/>
-<path id="topright" d="M36 0 Q48 0 48 12 H36Z" fill="#172334" fill-opacity=".79"/>
-<path id="left" d="M0 12h12v24h-12z" fill="#172334" fill-opacity=".79"/>
-<path id="center" d="M12 12h24v24h-24z" fill="#172334" fill-opacity=".79"/>
-<path id="right" d="M36 12h12v24h-12z" fill="#172334" fill-opacity=".79"/>
-<path id="bottomleft" d="M12 48 Q0 48 0 36 H12Z" fill="#172334" fill-opacity=".79"/>
-<path id="bottom" d="M12 36h24v12h-24z" fill="#172334" fill-opacity=".79"/>
-<path id="bottomright" d="M48 36 Q48 48 36 48 V36Z" fill="#172334" fill-opacity=".79"/>
+<path id="topleft" d="M0 12 Q0 0 12 0 V12Z" fill="#172334" fill-opacity=".48"/>
+<path id="top" d="M12 0h24v12h-24z" fill="#172334" fill-opacity=".48"/>
+<path id="topright" d="M36 0 Q48 0 48 12 H36Z" fill="#172334" fill-opacity=".48"/>
+<path id="left" d="M0 12h12v24h-12z" fill="#172334" fill-opacity=".48"/>
+<path id="center" d="M12 12h24v24h-24z" fill="#172334" fill-opacity=".48"/>
+<path id="right" d="M36 12h12v24h-12z" fill="#172334" fill-opacity=".48"/>
+<path id="bottomleft" d="M12 48 Q0 48 0 36 H12Z" fill="#172334" fill-opacity=".48"/>
+<path id="bottom" d="M12 36h24v12h-24z" fill="#172334" fill-opacity=".48"/>
+<path id="bottomright" d="M48 36 Q48 48 36 48 V36Z" fill="#172334" fill-opacity=".48"/>
 </svg>

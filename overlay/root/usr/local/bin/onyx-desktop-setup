@@ -4,16 +4,17 @@ set -u
 state="${XDG_STATE_HOME:-$HOME/.local/state}/onyx-os"
 mkdir -p "$state" || exit 1
 log="$state/desktop-setup.log"
-[[ -e "$state/desktop-glass-5-applied" ]] && exit 0
+[[ -e "$state/desktop-0.4-applied" ]] && exit 0
 printf 'ONYX 0.3 setup started: %s\n' "$(date -Is)" >> "$log"
 
 if command -v plasma-apply-colorscheme >/dev/null 2>&1; then
   plasma-apply-colorscheme OnyxGlass >> "$log" 2>&1 || true
 fi
 if command -v kwriteconfig6 >/dev/null 2>&1; then
-  kwriteconfig6 --file kwinrc --group Plugins --key blurEnabled true || true
+  kwriteconfig6 --file kwinrc --group Plugins --key forceblurEnabled true || true
   kwriteconfig6 --file kdeglobals --group KDE --key AnimationDurationFactor 0.75 || true
 fi
+dbus-send --session --type=signal /KWin org.kde.KWin.reloadConfig || true
 layout=/usr/share/onyx-os/plasma-layout.js
 [[ -s "$layout" ]] || { echo "ONYX layout missing" >> "$log"; exit 1; }
 # qdbus6 is not guaranteed on the Fedora KDE live image; use dbus-send,
@@ -28,7 +29,14 @@ for attempt in $(seq 1 20); do
       org.kde.PlasmaShell.evaluateScript \
       string:"$(cat "$layout")" 2>&1) && [[ "$reply" == *ONYX_LAYOUT_OK* ]]; then
     printf '%s\n' "$reply" >> "$log"
-    touch "$state/desktop-glass-5-applied"
+    effects=$(dbus-send --session --print-reply --dest=org.kde.KWin /Effects org.freedesktop.DBus.Properties.Get string:org.kde.kwin.Effects string:loadedEffects 2>&1)
+    if [[ "$effects" != *forceblur* || "$effects" != *kwin4_effect_shapecorners* ]]; then
+      printf 'Glass effects failed to load: %s\n' "$effects" >> "$log"
+      logger -t onyx-session "ONYX_VISUAL_FAILED $effects"
+      exit 1
+    fi
+    logger -t onyx-session "ONYX_VISUAL_READY version=0.4.0 forceblur shapecorners layout=0.4.0"
+    touch "$state/desktop-0.4-applied"
     echo "ONYX panel scripting call returned successfully" >> "$log"
     exit 0
   fi

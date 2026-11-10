@@ -5,7 +5,7 @@
     var launcher = null;
     for (var i = 0; i < previous.length; ++i) {
         previous[i].currentConfigGroup = ["ONYX"];
-        if (previous[i].readConfig("layoutVersion", "") === "0.3.4") {
+        if (previous[i].readConfig("layoutVersion", "") === "0.4.0") {
             print("ONYX_LAYOUT_OK");
             return;
         }
@@ -13,7 +13,7 @@
     try {
         dock = new Panel();
         dock.location = "bottom";
-        dock.height = 66;
+        dock.height = 78;
         dock.floating = true;
         dock.alignment = "center";
         dock.lengthMode = "fit";
@@ -33,15 +33,15 @@
             }
             if (j === 1) {
                 widget.currentConfigGroup = ["General"];
-                widget.writeConfig("iconSize", 35);
-                widget.writeConfig("hoverScale", 1.35);
-                widget.writeConfig("hoverLift", 3);
+                widget.writeConfig("iconSize", 38);
+                widget.writeConfig("hoverScale", 1.6);
+                widget.writeConfig("hoverLift", 7);
                 widget.writeConfig("backgroundOpacity", 0);
                 widget.writeConfig("pinnedLaunchers", ["applications:org.kde.dolphin.desktop", "applications:onyx-store.desktop", "applications:onyx-settings.desktop"]);
             }
         }
         dock.currentConfigGroup = ["ONYX"];
-        dock.writeConfig("layoutVersion", "0.3.4");
+        dock.writeConfig("layoutVersion", "0.4.0");
     } catch (error) {
         if (dock) dock.remove();
         throw error;

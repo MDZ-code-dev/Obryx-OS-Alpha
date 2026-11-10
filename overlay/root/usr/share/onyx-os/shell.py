@@ -74,9 +74,12 @@ class Shell(Gtk.Application):
         css = Gtk.CssProvider()
         css.load_from_path(str(ROOT / "shell.css"))
         Gtk.StyleContext.add_provider_for_screen(screen, css, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
-        self.window.set_default_size(890, 560)
+        monitor = screen.get_monitor_workarea(screen.get_primary_monitor())
+        self.window.set_default_size(min(960, monitor.width - 48), min(650, monitor.height - 100))
+        self.window.set_resizable(True)
         self.window.set_position(Gtk.WindowPosition.CENTER)
         self.window.set_decorated(False)
+        self.window.set_app_paintable(True)
         self.window.connect("key-press-event", self.key_press)
         self.window.connect("destroy", lambda *_: setattr(self, "window", None))
         frame = styled(Gtk.Box(), "frame")
@@ -101,19 +104,28 @@ class Shell(Gtk.Application):
         frame.pack_start(body, True, True, 0)
         self.stack = Gtk.Stack()
         self.stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE)
-        self.stack.set_transition_duration(170)
+        self.stack.set_transition_duration(240)
         body.pack_start(self.stack, True, True, 0)
         self.status = label("", "error")
         body.pack_end(self.status, False, False, 0)
         self.built_pages = set()
         for key, title in (("home", "Home"), ("apps", "Applications"), ("settings", "Settings")):
             panel = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
-            panel.pack_start(label("ONYX OS", "wordmark"), False, False, 0)
-            panel.pack_start(label(title, "heading"), False, False, 0)
+            panel.pack_start(label("ONYX OS 0.4 · ALPHA 1", "wordmark"), False, False, 0)
+            heading = Gtk.EventBox()
+            heading.add(label(title, "heading"))
+            heading.connect("button-press-event", self.move_window)
+            panel.pack_start(heading, False, False, 0)
             self.stack.add_named(panel, key)
         self.window.show_all()
         self.show_page(self.page)
         self.window.present()
+
+    def move_window(self, widget, event):
+        if event.button == 1:
+            self.window.begin_move_drag(event.button, int(event.x_root), int(event.y_root), event.time)
+            return True
+        return False
 
     def key_press(self, widget, event):
         if event.keyval == Gdk.KEY_Escape:

@@ -21,6 +21,13 @@ Rectangle {
             height: 120
             fillMode: Image.PreserveAspectFit
         }
+        Text {
+            anchors.horizontalCenter: parent.horizontalCenter
+            text: "ONYX OS 0.4"
+            color: "#c7d7e6"
+            font.pixelSize: 16
+            font.letterSpacing: 4
+        }
         Grid {
             anchors.horizontalCenter: parent.horizontalCenter
             columns: 3

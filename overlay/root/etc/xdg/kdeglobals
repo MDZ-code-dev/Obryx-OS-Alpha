@@ -1,6 +1,7 @@
 [General]
 ColorScheme=OnyxGlass
 [KDE]
+AnimationDurationFactor=0.85
 LookAndFeelPackage=org.onyx.desktop
 [Icons]
 Theme=breeze-dark

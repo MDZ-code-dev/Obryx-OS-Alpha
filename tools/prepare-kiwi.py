@@ -16,11 +16,8 @@ def customize_boot_menu(template: Path):
         raise ValueError("Expected one Fedora live start entry in the x86 GRUB template")
     original = matches[0].group()
     start = original.replace('Start ${title}', 'Start ONYX OS', 1)
-    install, count = re.subn(r'(?m)^(\s*linux(?:efi)?[ \t]+[^\n]+)$',
-                             r'\1 onyx.install=1', start.replace('Start ONYX OS', 'Install ONYX OS', 1))
-    if count != 1 or '${boot_options}' not in start:
-        raise ValueError("Unexpected live kernel command in the Fedora GRUB template")
-    menu = menu.replace(original, start + "\n" + install).replace("${title}", "ONYX OS")
+    start = start.replace("Start ONYX OS", "Start ONYX OS 0.4")
+    menu = menu.replace(original, start).replace("${title}", "ONYX OS 0.4")
     menu, count = re.subn(r'(?m)^set default=.*$', 'set default="0"', menu)
     if count != 1:
         raise ValueError("Expected one GRUB default entry setting")

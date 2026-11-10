@@ -24,18 +24,18 @@ ln -sfn /usr/share/wallpapers/ONYX /usr/share/wallpapers/Default
 if [ -f /usr/lib/os-release ]; then
   sed -i \
     -e 's/^NAME=.*/NAME="ONYX OS"/' \
-    -e 's/^PRETTY_NAME=.*/PRETTY_NAME="ONYX OS 0.3.1 Alpha"/' \
+    -e 's/^PRETTY_NAME=.*/PRETTY_NAME="ONYX OS 0.4 Alpha 1"/' \
     /usr/lib/os-release
 elif [ -f /etc/os-release ]; then
   sed -i \
     -e 's/^NAME=.*/NAME="ONYX OS"/' \
-    -e 's/^PRETTY_NAME=.*/PRETTY_NAME="ONYX OS 0.3.1 Alpha"/' \
+    -e 's/^PRETTY_NAME=.*/PRETTY_NAME="ONYX OS 0.4 Alpha 1"/' \
     /etc/os-release
 fi
 test -e /usr/share/wallpapers/Default/contents/images/1920x1080.png || {
   echo "FATAL: ONYX system wallpaper was not set" >&2; exit 39;
 }
-grep -q 'ONYX OS 0.3.1 Alpha' /usr/lib/os-release /etc/os-release 2>/dev/null || {
+grep -q 'ONYX OS 0.4 Alpha 1' /usr/lib/os-release /etc/os-release 2>/dev/null || {
   echo "FATAL: ONYX OS branding not present in os-release" >&2; exit 40;
 }
 echo "ONYX-OS: default system wallpaper, dark UI configuration and OS name verified."
@@ -50,8 +50,7 @@ if [ ! -f /etc/xdg/autostart/onyx-desktop-setup.desktop ] || [ ! -f /usr/local/b
   exit 42
 fi
 chmod +x /usr/local/bin/onyx-desktop-setup
-# Keep Breeze's complete Look-and-Feel package for stability.
-# Select the ONYX splash independently; our custom package only supplies splash QML.
+# Select ONYX before the live user and splash process are created.
 mkdir -p /etc/xdg
 cat > /etc/xdg/ksplashrc <<'ONYX_SPLASH'
 [KSplash]
@@ -87,7 +86,7 @@ test -s "$theme/watermark.png" || exit 45
 
 mkdir -p /etc/dracut.conf.d
 echo 'add_dracutmodules+=" plymouth "' > /etc/dracut.conf.d/51-onyx-splash.conf
-test -x /usr/bin/gtk-launch && test -s /usr/share/plasma/plasmoids/org.onyx.home/contents/ui/main.qml || exit 46
+test -x /usr/bin/gtk-launch && test -s /usr/share/applications/onyx-home.desktop || exit 46
 # The upstream live welcome wizard advertises installation. ONYX opens its own
 # launcher at first login. Use the installed plugin ID for the KDED preference.
 for module in /usr/lib*/qt6/plugins/kf6/kded/*welcome*.so; do
@@ -111,8 +110,8 @@ for entry in /etc/xdg/autostart/*welcome*.desktop /usr/share/applications/org.kd
   mkdir -p /etc/skel/.config/autostart
   printf '[Desktop Entry]\nType=Application\nHidden=true\n' > "/etc/skel/.config/autostart/$(basename "$entry")"
 done
-sed -i '/^LOGO=/d; /^VARIANT=/d' /usr/lib/os-release
-printf 'LOGO=onyx-crystal\nVARIANT="ONYX Desktop"\n' >> /usr/lib/os-release
+sed -i '/^LOGO=/d; /^VARIANT=/d; /^VERSION=/d' /usr/lib/os-release
+printf 'LOGO=onyx-crystal\nVARIANT="ONYX Desktop"\nVERSION="0.4 Alpha 1"\n' >> /usr/lib/os-release
 
 # Fedora's live session can inject its own per-user welcome preferences.
 # Apply the live image policy before the KDED module starts.
@@ -131,3 +130,33 @@ for splash in "$lf"/org.fedoraproject*/contents/splash "$lf"/org.kde.breeze.desk
   [ -f "$splash/Splash.qml" ] || continue
   install -m 644 "$lf/org.onyx.desktop/contents/splash/Splash.qml" "$splash/Splash.qml"
 done
+
+# Branding and compositor settings must exist before Plasma starts.
+for dir in /etc/xdg /etc/skel/.config; do
+  install -m 644 /usr/share/onyx-os/kwinrc "$dir/kwinrc"
+done
+# These are visible distro logos used by Breeze and Fedora defaults.
+# Preserve package metadata and license notices.
+for icon in /usr/share/icons/hicolor/scalable/apps/fedora-logo.svg /usr/share/pixmaps/fedora-logo.svg; do
+  if [ -e "$icon" ]; then
+    cp --remove-destination /usr/share/onyx-os/crystal.svg "$icon"
+  fi
+done
+# Set SDDM's visible identity and wallpaper, including its lock-screen fallback.
+if [ -d /usr/share/sddm/themes/breeze ]; then
+  cp -a /usr/share/sddm/themes/breeze /usr/share/sddm/themes/onyx
+  cat > /usr/share/sddm/themes/onyx/theme.conf.user <<'ONYX_LOGIN'
+[General]
+background=/usr/share/wallpapers/ONYX/contents/images/1920x1080.png
+logo=/usr/share/onyx-os/boot-logo.png
+showlogo=true
+ONYX_LOGIN
+  mkdir -p /etc/sddm.conf.d
+  printf '[Theme]\nCurrent=onyx\n' > /etc/sddm.conf.d/90-onyx.conf
+fi
+for dir in /etc/xdg /etc/skel/.config; do
+  kwriteconfig6 --file "$dir/kscreenlockerrc" --group Greeter --group Wallpaper --group org.kde.image --group General --key Image file:///usr/share/wallpapers/ONYX/contents/images/1920x1080.png
+done
+test -s /usr/lib64/qt6/plugins/kwin/effects/plugins/libforceblur.so || exit 47
+test -s /usr/lib64/qt6/plugins/kwin/effects/plugins/kwin4_effect_shapecorners.so || exit 48
+echo "ONYX 0.4 glass compositor and rounded corners installed."

@@ -36,7 +36,7 @@ if not errors:
     script = checks["session initializer"].read_text()
     if "dbus-send" not in script or "--print-reply" not in script:
         errors.append("Session script must wait for a D-Bus method reply")
-    if "desktop-glass-5-applied" not in script:
+    if "desktop-0.4-applied" not in script:
         errors.append("Session script needs a first-run completion marker")
     hook = checks["branding hook"].read_text()
     if "Theme=org.onyx.desktop" not in hook:
