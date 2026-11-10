@@ -10,7 +10,7 @@ import sys
 import time
 
 import cv2
-from PIL import Image
+from PIL import Image, ImageOps
 
 artifacts = Path("vm-test").resolve()
 artifacts.mkdir(exist_ok=True)
@@ -77,6 +77,13 @@ def screen(name):
     png = artifacts / (name + ".png")
     with Image.open(ppm) as img:
         img.save(png)
+        if name in ("home", "apps", "settings"):
+            # Read light text on translucent dark panels at a larger scale.
+            # Keep the original color capture as the visual test artifact.
+            mono = ImageOps.invert(img.convert("L"))
+            mono = mono.resize((mono.width * 2, mono.height * 2), Image.Resampling.BICUBIC)
+            png = artifacts / "ocr-input.pgm"
+            mono.point(lambda value: 0 if value < 110 else 255).save(png)
     return subprocess.check_output(
         ["tesseract", str(png), "stdout", "--psm", "11"],
         stderr=subprocess.DEVNULL, text=True,
@@ -165,13 +172,15 @@ try:
     # Activate the installed panel applet. Building the GTK window directly
     # would miss a broken Plasma widget or panel layout.
     click_home()
-    if not wait_for("home", r"Quick\s+launch", 60):
+    if not wait_for("home", r"(?s)\bFiles\b.*\bBrowser\b.*\bStore\b.*\bTerminal\b", 60):
         raise RuntimeError("Clicking the ONYX dock crystal did not open Home")
     keys("ctrl-f")
+    if not wait_for("apps", r"Applications|Search installed applications", 30):
+        raise RuntimeError("Application search did not open from Home")
     for char in "onyx settings":
         keys("spc" if char == " " else char)
     keys("ret")
-    if not wait_for("settings", r"Resolution,?\s+scale|Speakers,?\s+microphones", 30):
+    if not wait_for("settings", r"(?s)\bDisplay\b.*\bSound\b.*\bBluetooth\b|Resolution,?\s+scale.*Speakers", 45):
         raise RuntimeError("ONYX Settings did not open from application search")
     print("UEFI boot, Dolphin, ONYX Home, app search and Settings passed.")
 except RuntimeError:
