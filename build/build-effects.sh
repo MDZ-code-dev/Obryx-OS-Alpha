@@ -30,5 +30,5 @@ build_effect() {
   git -C "$source" archive HEAD | gzip > "$archive/source.tar.gz"
   printf '%s\n%s\n' "$url" "$revision" > "$archive/UPSTREAM"
 }
-build_effect blur https://github.com/can1357/kde-blur 4f86e779512716366554d59dbad2beed277dba6a -DBETTERBLUR_X11=OFF
+build_effect blur https://github.com/4v3ngR/kwin-effects-glass 5e2845fffbe893177c091fe18d603b9095cc2729 -DGLASS_X11=OFF
 build_effect corners https://github.com/matinlotfali/KDE-Rounded-Corners 66d7ce91a4f26062bba91bc7274ba85b6211391f
