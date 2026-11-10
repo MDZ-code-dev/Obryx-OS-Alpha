@@ -30,13 +30,13 @@ if not errors:
     except (ValueError, KeyError, AssertionError) as exc:
         errors.append(f"Invalid splash metadata: {exc}")
     layout = checks["plasma layout"].read_text()
-    for widget in ("org.onyx.home", "org.kde.plasma.icontasks", "org.kde.plasma.systemtray"):
+    for widget in ("org.onyx.home", "per.nonobeam.paneldock", "org.kde.plasma.systemtray"):
         if widget not in layout:
             errors.append(f"Missing functional Plasma widget: {widget}")
     script = checks["session initializer"].read_text()
     if "dbus-send" not in script or "--print-reply" not in script:
         errors.append("Session script must wait for a D-Bus method reply")
-    if "desktop-0.3.1-applied" not in script:
+    if "desktop-glass-4-applied" not in script:
         errors.append("Session script needs a first-run completion marker")
     hook = checks["branding hook"].read_text()
     if "Theme=org.onyx.desktop" not in hook:

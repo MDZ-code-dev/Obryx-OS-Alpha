@@ -58,6 +58,19 @@ jobs:
           file output/ONYX-OS-0.3.1-Alpha-x86_64.iso
           ls -lh output/ONYX-OS-0.3.1-Alpha-x86_64.iso
           echo "NOTE: ISO signature and checksum are valid; live desktop boot still needs testing."
+      - name: Boot the release in a diskless UEFI VM
+        timeout-minutes: 25
+        run: |
+          sudo apt-get install -y --no-install-recommends qemu-system-x86 ovmf tesseract-ocr python3-pil
+          sudo /usr/bin/python3 tools/test-live-desktop.py output/ONYX-OS-0.3.1-Alpha-x86_64.iso
+      - name: Save live session screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: onyx-live-session
+          path: vm-test/*.png
+          if-no-files-found: ignore
+          retention-days: 7
       # Releases permit large assets without the GitHub Actions artifact quota.
       # GitHub release assets must each be smaller than 2 GiB.
       - name: Publish ONYX alpha ISO to private GitHub Release
@@ -66,7 +79,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -Eeuo pipefail
-          TAG="v0.3.1-alpha.3"
+          TAG="v0.3.1-alpha.4"
           ISO="output/ONYX-OS-0.3.1-Alpha-x86_64.iso"
           SHA="$ISO.sha256"
           # The ISO is created as root inside the Fedora Docker container.
@@ -79,8 +92,8 @@ jobs:
           if ! gh release view "$TAG" >/dev/null 2>&1; then
             gh release create "$TAG" \
               --target "$GITHUB_SHA" \
-              --title "ONYX OS 0.3.1 Alpha - untested Live ISO" \
-              --notes "Experimental Fedora 45 KDE Live image. The build and checksum are automated but booting and installing have NOT yet been tested. For testing only; do not replace your main OS." \
+              --title "ONYX OS 0.3.1 Alpha - Glass Live USB" \
+              --notes "Live USB alpha. Validated in a diskless UEFI virtual machine." \
               --prerelease
           fi
           gh release upload "$TAG" "$SHA" --clobber
@@ -107,16 +120,3 @@ jobs:
             done
           fi
           gh release view "$TAG" --json url --jq .url
-      - name: Boot the release in a diskless UEFI VM
-        timeout-minutes: 25
-        run: |
-          sudo apt-get install -y --no-install-recommends qemu-system-x86 ovmf tesseract-ocr python3-pil
-          sudo /usr/bin/python3 tools/test-live-desktop.py output/ONYX-OS-0.3.1-Alpha-x86_64.iso
-      - name: Save live session screenshots
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: onyx-live-session
-          path: vm-test/*.png
-          if-no-files-found: ignore
-          retention-days: 7

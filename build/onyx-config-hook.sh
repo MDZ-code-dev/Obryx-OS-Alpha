@@ -88,3 +88,28 @@ test -s "$theme/watermark.png" || exit 45
 mkdir -p /etc/dracut.conf.d
 echo 'add_dracutmodules+=" plymouth "' > /etc/dracut.conf.d/51-onyx-splash.conf
 test -x /usr/bin/gtk-launch && test -s /usr/share/plasma/plasmoids/org.onyx.home/contents/ui/main.qml || exit 46
+# The upstream live welcome wizard advertises installation. ONYX opens its own
+# launcher at first login. Use the installed plugin ID for the KDED preference.
+for module in /usr/lib*/qt6/plugins/kf6/kded/*welcome*.so; do
+  [ -f "$module" ] || continue
+  plugin=$(basename "$module" .so)
+  kwriteconfig6 --file /etc/xdg/kded6rc --group "Module-$plugin" --key autoload false
+done
+# KSplash resolves a LookAndFeel package before live-user autostart executes.
+# Supply the base package's complete component set with ONYX overrides.
+lf=/usr/share/plasma/look-and-feel
+cp -an "$lf/org.kde.breeze.desktop/contents/." "$lf/org.onyx.desktop/contents/"
+mkdir -p /etc/skel/.config /usr/share/icons/hicolor/scalable/apps
+install -m 644 /usr/share/onyx-os/crystal.svg /usr/share/icons/hicolor/scalable/apps/onyx-crystal.svg
+for dir in /etc/xdg /etc/skel/.config; do
+  kwriteconfig6 --file "$dir/kdeglobals" --group KDE --key LookAndFeelPackage org.onyx.desktop
+  kwriteconfig6 --file "$dir/ksplashrc" --group KSplash --key Theme org.onyx.desktop
+  kwriteconfig6 --file "$dir/kded6rc" --group Module-plasma-welcome --key autoload false
+done
+for entry in /etc/xdg/autostart/*welcome*.desktop /usr/share/applications/org.kde.plasma-welcome.desktop; do
+  [ -f "$entry" ] || continue
+  mkdir -p /etc/skel/.config/autostart
+  printf '[Desktop Entry]\nType=Application\nHidden=true\n' > "/etc/skel/.config/autostart/$(basename "$entry")"
+done
+sed -i '/^LOGO=/d; /^VARIANT=/d' /usr/lib/os-release
+printf 'LOGO=onyx-crystal\nVARIANT="ONYX Desktop"\n' >> /usr/lib/os-release

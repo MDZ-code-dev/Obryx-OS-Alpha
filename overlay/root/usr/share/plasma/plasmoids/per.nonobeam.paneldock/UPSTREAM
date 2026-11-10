@@ -1,0 +1,5 @@
+Nonobeam Panel Dock, Nguyen Huu Thuc, GPL-3.0-or-later
+https://github.com/Nonobeam/kde-panel-dock
+Revision 385d79b2eb6fe6ca08ce22fe9db9f4bf664d666c
+ONYX adaptation: share the panel with Home, the system tray and the clock.
+Panel geometry and background are managed by the distribution layout.

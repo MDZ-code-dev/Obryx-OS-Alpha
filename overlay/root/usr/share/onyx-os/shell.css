@@ -1,5 +1,5 @@
 window { background-color: transparent; color: #f5f7fa; font-family: "Noto Sans", sans-serif; }
-.frame { background-image: linear-gradient(125deg, rgba(33,43,59,.93), rgba(12,17,28,.87) 60%, rgba(36,30,51,.89)); border: 1px solid rgba(216,236,255,.29); border-radius: 20px; }
+.frame { background-image: linear-gradient(125deg, rgba(58,77,95,.89), rgba(18,26,41,.83) 36%, rgba(18,22,36,.85) 72%, rgba(56,50,71,.86)); border: 1px solid rgba(216,236,255,.29); border-radius: 23px; box-shadow: inset 0 1px rgba(236,249,255,.38); }
 .rail { padding: 10px 12px; background-color: rgba(3,8,18,.34); border-radius: 20px 0 0 20px; border-right: 1px solid rgba(255,255,255,.10); }
 .body { padding: 28px 34px 22px; }
 button, entry { color: #edf4ff; text-shadow: none; box-shadow: none; }

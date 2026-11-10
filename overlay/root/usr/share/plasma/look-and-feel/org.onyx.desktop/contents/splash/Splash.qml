@@ -2,7 +2,11 @@ import QtQuick
 
 Rectangle {
     id: root
-    color: "#0c1017"
+    gradient: Gradient {
+        GradientStop { position: 0; color: "#111c2a" }
+        GradientStop { position: 0.54; color: "#0c111a" }
+        GradientStop { position: 1; color: "#070a10" }
+    }
     // KSplashQML writes this property as the session progresses.
     property int stage: 0
     property bool reducedMotion: false
@@ -11,7 +15,7 @@ Rectangle {
         spacing: 28
         Image {
             anchors.horizontalCenter: parent.horizontalCenter
-            source: "file:///usr/share/onyx-os/onyx-logo.svg"
+            source: "file:///usr/share/onyx-os/boot-logo.png"
             sourceSize.width: 240
             width: 240
             height: 120
@@ -29,7 +33,7 @@ Rectangle {
                     width: 10
                     height: 10
                     radius: 2
-                    color: "#79d8e9"
+                    color: "#b8e1ee"
                     opacity: root.reducedMotion ? 0.7 : 0.2
                     SequentialAnimation on opacity {
                         running: !root.reducedMotion && root.stage < 6

@@ -4,7 +4,7 @@
     "Name": "ONYX Home",
     "Description": "Open the ONYX application launcher",
     "Version": "0.3.1",
-    "Icon": "start-here",
+    "Icon": "onyx-crystal",
     "License": "GPL-2.0-or-later",
     "Category": "Application Launchers"
   },

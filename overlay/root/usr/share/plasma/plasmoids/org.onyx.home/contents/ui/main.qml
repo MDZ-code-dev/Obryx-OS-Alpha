@@ -8,7 +8,10 @@ PlasmoidItem {
     preferredRepresentation: fullRepresentation
     toolTipMainText: "ONYX Home"
     function openHome() { runner.connectSource("gtk-launch onyx-home") }
-    onActivated: openHome()
+    Connections {
+        target: Plasmoid
+        function onActivated() { home.openHome() }
+    }
     Support.DataSource {
         id: runner
         engine: "executable"
@@ -23,11 +26,13 @@ PlasmoidItem {
         Image {
             anchors.centerIn: parent
             height: Math.min(parent.height * 0.72, 34)
+            scale: pointer.hovered ? 1.18 : 1
+            Behavior on scale { NumberAnimation { duration: 140; easing.type: Easing.OutCubic } }
             width: height
             source: "file:///usr/share/onyx-os/crystal.svg"
             fillMode: Image.PreserveAspectFit
         }
         TapHandler { onTapped: home.openHome() }
-        HoverHandler { cursorShape: Qt.PointingHandCursor }
+        HoverHandler { id: pointer; cursorShape: Qt.PointingHandCursor }
     }
 }
