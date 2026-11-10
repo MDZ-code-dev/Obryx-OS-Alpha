@@ -1,21 +1,26 @@
 import QtQuick
 import QtQuick.Layouts
 import org.kde.plasma.plasmoid
-import org.kde.plasma.plasma5support as Support
+import org.kde.taskmanager as TaskManager
 
 PlasmoidItem {
     id: home
     preferredRepresentation: fullRepresentation
     toolTipMainText: "ONYX Home"
-    function openHome() { runner.connectSource("gtk-launch onyx-home") }
+    function openHome() {
+        const row = launchers.launcherPosition("applications:onyx-home.desktop")
+        if (row >= 0) launchers.requestNewInstance(launchers.index(row, 0))
+    }
     Connections {
         target: Plasmoid
         function onActivated() { home.openHome() }
     }
-    Support.DataSource {
-        id: runner
-        engine: "executable"
-        onNewData: function(source, data) { disconnectSource(source) }
+    TaskManager.TasksModel {
+        id: launchers
+        launcherList: ["applications:onyx-home.desktop"]
+        separateLaunchers: true
+        hideActivatedLaunchers: false
+        sortMode: TaskManager.TasksModel.SortManual
     }
     fullRepresentation: Item {
         Layout.minimumWidth: 42

@@ -178,17 +178,18 @@ class Shell(Gtk.Application):
         panel.pack_start(self.search, False, False, 0)
         listing = Gtk.ListBox()
         listing.set_selection_mode(Gtk.SelectionMode.SINGLE)
-        apps = sorted(Gio.AppInfo.get_all(), key=lambda a: a.get_display_name().casefold())
+        apps = sorted(Gio.AppInfo.get_all(), key=lambda a: (a.get_display_name() or '').casefold())
         for app in apps:
-            if not app.should_show() or app.get_id() in ("onyx-home.desktop", "org.kde.systemsettings.desktop", "liveinst.desktop") or app.get_executable().endswith("/liveinst"):
+            name = app.get_display_name()
+            if not name or not app.should_show() or app.get_id() in ("onyx-home.desktop", "org.kde.systemsettings.desktop", "liveinst.desktop") or (app.get_executable() or "").endswith("/liveinst"):
                 continue
             row = Gtk.ListBoxRow()
             row.info = app
-            row.search_text = (app.get_display_name() + " " + (app.get_description() or "")).casefold()
+            row.search_text = (name + " " + (app.get_description() or "")).casefold()
             line = styled(Gtk.Box(spacing=15), "line")
             if app.get_icon():
                 line.add(Gtk.Image.new_from_gicon(app.get_icon(), Gtk.IconSize.LARGE_TOOLBAR))
-            line.add(label(app.get_display_name(), "row-title"))
+            line.add(label(name, "row-title"))
             row.add(line)
             listing.add(row)
         listing.set_filter_func(lambda row: self.search.get_text().casefold() in row.search_text)

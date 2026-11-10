@@ -24,7 +24,7 @@ vm = subprocess.Popen(
      "-drive", f"if=pflash,format=raw,readonly=on,file={firmware}/OVMF_CODE_4M.fd",
      "-drive", f"if=pflash,format=raw,file={variables}",
      "-smp", "2", "-m", "4096", "-display", "none", "-vga", "std",
-     "-device", "qemu-xhci", "-device", "usb-tablet", "-nic", "none", "-boot", "d", "-cdrom", str(iso), "-qmp", "stdio"],
+     "-device", "qemu-xhci", "-device", "usb-tablet", "-serial", f"file:{artifacts}/guest-serial.log", "-nic", "none", "-boot", "d", "-cdrom", str(iso), "-qmp", "stdio"],
     stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True,
 )
 
@@ -155,6 +155,29 @@ try:
     if not wait_for("settings", r"Resolution,?\s+scale|Speakers,?\s+microphones", 30):
         raise RuntimeError("ONYX Settings did not open from application search")
     print("UEFI boot, Dolphin, ONYX Home, app search and Settings passed.")
+except RuntimeError:
+    # Preserve the original failure; use a terminal only to collect evidence.
+    keys("alt-f2")
+    time.sleep(1)
+    for char in "konsole":
+        keys(char)
+    keys("ret")
+    time.sleep(4)
+    symbols = {" ": "spc", "-": "minus", "/": "slash", "|": "shift-backslash",
+               ">": "shift-dot", "&": "shift-7", ".": "dot", "S": "shift-s"}
+    for diagnostic in (
+        "journalctl --user -b -n 400 --no-pager | sudo -n tee /dev/ttyS0",
+        "python3 /usr/share/onyx-os/shell.py home 2>&1 | sudo -n tee /dev/ttyS0",
+    ):
+        for char in diagnostic:
+            keys(symbols.get(char, char))
+        keys("ret")
+        time.sleep(3)
+    screen("diagnostic")
+    serial = artifacts / "guest-serial.log"
+    if serial.is_file():
+        print(serial.read_text(errors="replace")[-48000:], flush=True)
+    raise
 finally:
     vm.terminate()
     vm.wait(timeout=20)
