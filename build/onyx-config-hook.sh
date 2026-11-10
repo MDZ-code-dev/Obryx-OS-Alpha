@@ -157,7 +157,7 @@ fi
 for dir in /etc/xdg /etc/skel/.config; do
   kwriteconfig6 --file "$dir/kscreenlockerrc" --group Greeter --group Wallpaper --group org.kde.image --group General --key Image file:///usr/share/wallpapers/ONYX/contents/images/1920x1080.png
 done
-test -s /usr/lib64/qt6/plugins/kwin/effects/plugins/libglass.so || exit 47
+test -s /usr/lib64/qt6/plugins/kwin/effects/plugins/glass.so || exit 47
 test -s /usr/lib64/qt6/plugins/kwin/effects/plugins/kwin4_effect_shapecorners.so || exit 48
 echo "ONYX 0.4 glass compositor and rounded corners installed."
 

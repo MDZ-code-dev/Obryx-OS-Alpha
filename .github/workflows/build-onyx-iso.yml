@@ -78,6 +78,31 @@ jobs:
             vm-test/journal.log
           if-no-files-found: ignore
           retention-days: 7
+      - name: Make live previews readable for remote review
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import base64
+          import io
+          from pathlib import Path
+          from PIL import Image
+          folder = Path("vm-test")
+          names = ["home.png", "settings.png", "file-manager.png", "dock-idle.png", "dock-hover.png"]
+          paths = [folder / name for name in names]
+          paths += sorted(folder.glob("boot-*.png"))[-3:]
+          for path in paths:
+              if not path.is_file():
+                  continue
+              with Image.open(path) as picture:
+                  picture.thumbnail((960, 600))
+                  buffer = io.BytesIO()
+                  picture.save(buffer, format="PNG")
+              print("::group::Live preview " + path.name)
+              print("ONYX_PREVIEW_START " + path.name)
+              print(base64.encodebytes(buffer.getvalue()).decode("ascii"))
+              print("ONYX_PREVIEW_END")
+              print("::endgroup::")
+          PY
       # Releases permit large assets without the GitHub Actions artifact quota.
       # GitHub release assets must each be smaller than 2 GiB.
       - name: Publish ONYX alpha ISO to private GitHub Release
