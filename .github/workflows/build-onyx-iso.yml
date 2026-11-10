@@ -61,7 +61,7 @@ jobs:
       - name: Boot the release in a diskless UEFI VM
         timeout-minutes: 25
         run: |
-          sudo apt-get install -y --no-install-recommends qemu-system-x86 ovmf tesseract-ocr python3-pil
+          sudo apt-get install -y --no-install-recommends qemu-system-x86 ovmf tesseract-ocr python3-pil python3-opencv
           sudo /usr/bin/python3 tools/test-live-desktop.py output/ONYX-OS-0.3.1-Alpha-x86_64.iso
       - name: Save live session screenshots
         if: always()
@@ -115,8 +115,15 @@ jobs:
               dd if="$ISO" of="$PART" bs=1M skip="$((partnum * PART_SIZE_MIB))" count="$PART_SIZE_MIB" status=none
               test -s "$PART"
               gh release upload "$TAG" "$PART" --clobber
+              sha256sum "$PART" | awk -v name="$(basename "$PART")" '{print $1 "  " name}' >> "$PART_DIR/parts.sha256"
               rm -f "$PART"
               (( partnum += 1 ))
             done
+            gh release download "$TAG" --pattern '*.part*' --pattern '*.cmd' --pattern '*.iso.sha256' --dir "$PART_DIR"
+            (cd "$PART_DIR" && sha256sum -c parts.sha256 && cat *.part[0-9][0-9] | sha256sum > rebuilt.sha256)
+            test "$(cut -d' ' -f1 "$PART_DIR/rebuilt.sha256")" = "$(cut -d' ' -f1 "$SHA")"
+            cmp "$SHA" "$PART_DIR/$(basename "$SHA")"
+            cmp tools/COMBINE-ONYX-WINDOWS.cmd "$PART_DIR/COMBINE-ONYX-WINDOWS.cmd"
+            cat "$PART_DIR/rebuilt.sha256"
           fi
           gh release view "$TAG" --json url --jq .url

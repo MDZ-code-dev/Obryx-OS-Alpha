@@ -2,6 +2,7 @@
 (function () {
     var previous = panels();
     var dock = null;
+    var launcher = null;
     for (var i = 0; i < previous.length; ++i) {
         previous[i].currentConfigGroup = ["ONYX"];
         if (previous[i].readConfig("layoutVersion", "") === "0.3.3") {
@@ -25,7 +26,7 @@
             if (!widget || widget.type !== types[j]) {
                 throw new Error("Cannot create required widget: " + types[j]);
             }
-            if (j === 0) widget.globalShortcut = "Alt+F1";
+            if (j === 0) launcher = widget;
             if (j === 1) {
                 widget.currentConfigGroup = ["General"];
                 widget.writeConfig("iconSize", 35);
@@ -45,5 +46,6 @@
     for (var k = 0; k < previous.length; ++k) {
         if (previous[k].screen === dock.screen) previous[k].remove();
     }
+    launcher.globalShortcut = "Alt+F1";
     print("ONYX_LAYOUT_OK");
 }());

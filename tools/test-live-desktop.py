@@ -8,6 +8,7 @@ import subprocess
 import sys
 import time
 
+import cv2
 from PIL import Image
 
 artifacts = Path("vm-test").resolve()
@@ -23,7 +24,7 @@ vm = subprocess.Popen(
      "-drive", f"if=pflash,format=raw,readonly=on,file={firmware}/OVMF_CODE_4M.fd",
      "-drive", f"if=pflash,format=raw,file={variables}",
      "-smp", "2", "-m", "4096", "-display", "none", "-vga", "std",
-     "-nic", "none", "-boot", "d", "-cdrom", str(iso), "-qmp", "stdio"],
+     "-device", "qemu-xhci", "-device", "usb-tablet", "-nic", "none", "-boot", "d", "-cdrom", str(iso), "-qmp", "stdio"],
     stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True,
 )
 
@@ -61,6 +62,36 @@ def screen(name):
         ["tesseract", str(png), "stdout", "--psm", "11"],
         stderr=subprocess.DEVNULL, text=True,
     )
+
+
+def click_home():
+    # Match the installed crystal on the dock, accounting for panel scaling.
+    shot = cv2.imread(str(artifacts / "desktop.png"), cv2.IMREAD_GRAYSCALE)
+    height, width = shot.shape
+    region = shot[-95:, :width // 2]
+    icon = cv2.imread("overlay/root/usr/share/onyx-os/icons/crystal.png", cv2.IMREAD_UNCHANGED)
+    best = (-1, 0, 0)
+    for size in range(24, 46, 2):
+        tile = cv2.resize(icon, (round(size * 72 / 84), size), interpolation=cv2.INTER_AREA)
+        gray = cv2.cvtColor(tile, cv2.COLOR_BGRA2GRAY)
+        alpha = tile[:, :, 3] / 255
+        template = (gray * alpha + 30 * (1 - alpha)).astype("uint8")
+        matches = cv2.matchTemplate(region, template, cv2.TM_CCOEFF_NORMED)
+        _, score, _, (left, top) = cv2.minMaxLoc(matches)
+        if score > best[0]:
+            best = (score, left + tile.shape[1] // 2, height - 95 + top + size // 2)
+    score, x, y = best
+    print(f"Dock crystal match {score:.3f} at {x},{y}", flush=True)
+    if score < 0.75:
+        raise RuntimeError("Could not locate ONYX Home crystal on the dock")
+    command("input-send-event", events=[
+        {"type": "abs", "data": {"axis": axis, "value": round(value * 32767 / maximum)}}
+        for axis, value, maximum in (("x", x, width - 1), ("y", y, height - 1))
+    ])
+    time.sleep(0.3)
+    for down in (True, False):
+        command("input-send-event", events=[{"type": "btn", "data": {"button": "left", "down": down}}])
+        time.sleep(0.1)
 
 
 def wait_for(name, pattern, seconds):
@@ -109,14 +140,14 @@ try:
         raise RuntimeError("The live desktop did not open Dolphin with Super+E")
     keys("alt-f4")
     time.sleep(1)
-    screen("desktop")
+    desktop_text = screen("desktop")
+    if re.search(r"Welcome Center|Install to Hard Drive", desktop_text, re.I):
+        raise RuntimeError("Upstream installer welcome is covering the live desktop")
     # Activate the installed panel applet. Building the GTK window directly
     # would miss a broken Plasma widget or panel layout.
-    keys("meta_l")
-    if not wait_for("home", r"Quick\s+launch", 20):
-        keys("alt-f1")
-        if not wait_for("home", r"Quick\s+launch", 15):
-            raise RuntimeError("The ONYX panel launcher did not open Home")
+    click_home()
+    if not wait_for("home", r"Quick\s+launch", 30):
+        raise RuntimeError("Clicking the ONYX dock crystal did not open Home")
     keys("ctrl-f")
     for char in "onyx settings":
         keys("spc" if char == " " else char)

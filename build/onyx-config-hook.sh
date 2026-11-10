@@ -113,3 +113,21 @@ for entry in /etc/xdg/autostart/*welcome*.desktop /usr/share/applications/org.kd
 done
 sed -i '/^LOGO=/d; /^VARIANT=/d' /usr/lib/os-release
 printf 'LOGO=onyx-crystal\nVARIANT="ONYX Desktop"\n' >> /usr/lib/os-release
+
+# Fedora's live session can inject its own per-user welcome preferences.
+# Apply the live image policy before the KDED module starts.
+cat > /etc/xdg/plasma-welcomerc <<'EOF'
+[General]
+LiveEnvironment[$i]=false
+LastSeenVersion=6.0.0
+ShowUpdatePage=false
+EOF
+# Keep Welcome Center available manually. Omit only its automatic KDED launcher.
+for module in /usr/lib*/qt6/plugins/kf6/kded/kded_plasma_welcome.so; do
+  [ ! -f "$module" ] || rm -f "$module"
+done
+# Ship ONYX artwork when the live profile selects its distro splash fallback.
+for splash in "$lf"/org.fedoraproject*/contents/splash "$lf"/org.kde.breeze.desktop/contents/splash; do
+  [ -f "$splash/Splash.qml" ] || continue
+  install -m 644 "$lf/org.onyx.desktop/contents/splash/Splash.qml" "$splash/Splash.qml"
+done
