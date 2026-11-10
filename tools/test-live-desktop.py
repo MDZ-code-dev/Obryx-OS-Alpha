@@ -1,4 +1,5 @@
 """Boot the actual ISO with no writable disk and drive KDE through QEMU."""
+import base64
 import json
 import os
 from pathlib import Path
@@ -29,7 +30,10 @@ journal_unit.write_text(
 )
 wants = artifacts / "journal-wants.conf"
 wants.write_text("[Unit]\nWants=onyx-vm-journal.service\n")
-cred = "name=opt/io.systemd.credentials/"
+def smbios_credential(name, path):
+    payload = base64.b64encode(path.read_bytes()).decode("ascii")
+    return f"type=11,value=io.systemd.credential.binary:{name}={payload}"
+
 vm = subprocess.Popen(
     ["qemu-system-x86_64", "-machine", "q35", "-accel",
      "kvm" if kvm else "tcg", "-cpu", "host" if kvm else "max",
@@ -37,8 +41,8 @@ vm = subprocess.Popen(
      "-drive", f"if=pflash,format=raw,file={variables}",
      "-smp", "2", "-m", "4096", "-display", "none", "-vga", "std",
      "-device", "qemu-xhci", "-device", "usb-tablet", "-serial", f"file:{artifacts}/guest-serial.log", "-serial", f"file:{artifacts}/journal.log",
-     "-fw_cfg", f"{cred}systemd.extra-unit.onyx-vm-journal.service,file={journal_unit}",
-     "-fw_cfg", f"{cred}systemd.unit-dropin.multi-user.target,file={wants}",
+     "-smbios", smbios_credential("systemd.extra-unit.onyx-vm-journal.service", journal_unit),
+     "-smbios", smbios_credential("systemd.unit-dropin.multi-user.target", wants),
      "-nic", "none", "-boot", "d", "-cdrom", str(iso), "-qmp", "stdio"],
     stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True,
 )
