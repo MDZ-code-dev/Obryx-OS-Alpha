@@ -76,13 +76,19 @@ def wait_for(name, pattern, seconds):
 try:
     receive()
     command("qmp_capabilities")
-    time.sleep(85)
+    if not wait_for("welcome", r"Welcome (to|Center)|Install to Hard Drive", 280):
+        raise RuntimeError("No live session welcome screen")
+    time.sleep(8)
+    keys("alt-f4")
+    time.sleep(3)
     keys("alt-f2")
-    time.sleep(2)
+    time.sleep(3)
     for c in "konsole":
         keys(c)
     keys("ret")
-    time.sleep(8)
+    if not wait_for("console", r"konsole|liveuser|bash", 25):
+        keys("ctrl-alt-t")
+        time.sleep(6)
     for line in ["sudo mount -L ONYXQA /mnt", "sudo bash /mnt/check", "gtk-launch onyx-home"]:
         for c in line:
             if c.isupper():
