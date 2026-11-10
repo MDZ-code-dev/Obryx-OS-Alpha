@@ -30,7 +30,7 @@ if not errors:
     except (ValueError, KeyError, AssertionError) as exc:
         errors.append(f"Invalid splash metadata: {exc}")
     layout = checks["plasma layout"].read_text()
-    for widget in ("org.onyx.home", "per.nonobeam.paneldock", "org.kde.plasma.systemtray"):
+    for widget in ("org.kde.plasma.icon", "onyx-home.desktop", "per.nonobeam.paneldock", "org.kde.plasma.systemtray"):
         if widget not in layout:
             errors.append(f"Missing functional Plasma widget: {widget}")
     script = checks["session initializer"].read_text()

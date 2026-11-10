@@ -104,12 +104,12 @@ class Shell(Gtk.Application):
         body.pack_start(self.stack, True, True, 0)
         self.status = label("", "error")
         body.pack_end(self.status, False, False, 0)
+        self.built_pages = set()
         for key, title in (("home", "Home"), ("apps", "Applications"), ("settings", "Settings")):
             panel = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
             panel.pack_start(label("ONYX OS", "wordmark"), False, False, 0)
             panel.pack_start(label(title, "heading"), False, False, 0)
             self.stack.add_named(panel, key)
-            getattr(self, "build_" + key)(panel)
         self.window.show_all()
         self.show_page(self.page)
         self.window.present()
@@ -127,6 +127,11 @@ class Shell(Gtk.Application):
         return False
 
     def show_page(self, key):
+        if key not in self.built_pages:
+            panel = self.stack.get_child_by_name(key)
+            getattr(self, "build_" + key)(panel)
+            panel.show_all()
+            self.built_pages.add(key)
         self.stack.set_visible_child_name(key)
         self.status.hide()
         self.window.set_title("ONYX " + {"home":"Home", "apps":"Applications", "settings":"Settings"}[key])

@@ -5,7 +5,7 @@
     var launcher = null;
     for (var i = 0; i < previous.length; ++i) {
         previous[i].currentConfigGroup = ["ONYX"];
-        if (previous[i].readConfig("layoutVersion", "") === "0.3.3") {
+        if (previous[i].readConfig("layoutVersion", "") === "0.3.4") {
             print("ONYX_LAYOUT_OK");
             return;
         }
@@ -19,14 +19,18 @@
         dock.lengthMode = "fit";
         dock.hiding = "none";
         dock.opacity = "translucent";
-        var types = ["org.onyx.home", "per.nonobeam.paneldock",
+        var types = ["org.kde.plasma.icon", "per.nonobeam.paneldock",
                      "org.kde.plasma.systemtray", "org.kde.plasma.digitalclock"];
         for (var j = 0; j < types.length; ++j) {
             var widget = dock.addWidget(types[j]);
             if (!widget || widget.type !== types[j]) {
                 throw new Error("Cannot create required widget: " + types[j]);
             }
-            if (j === 0) launcher = widget;
+            if (j === 0) {
+                launcher = widget;
+                launcher.currentConfigGroup = [];
+                launcher.writeConfig("url", "file:///usr/share/applications/onyx-home.desktop");
+            }
             if (j === 1) {
                 widget.currentConfigGroup = ["General"];
                 widget.writeConfig("iconSize", 35);
@@ -37,7 +41,7 @@
             }
         }
         dock.currentConfigGroup = ["ONYX"];
-        dock.writeConfig("layoutVersion", "0.3.3");
+        dock.writeConfig("layoutVersion", "0.3.4");
     } catch (error) {
         if (dock) dock.remove();
         throw error;

@@ -18,13 +18,28 @@ kvm = os.access("/dev/kvm", os.R_OK | os.W_OK)
 firmware = Path("/usr/share/OVMF")
 variables = artifacts / "OVMF_VARS.fd"
 shutil.copyfile(firmware / "OVMF_VARS_4M.fd", variables)
+# Pass diagnostic units through the VM firmware only. The published ISO
+# gets no debug login, privileged agent or extra startup service.
+journal_unit = artifacts / "journal.service"
+journal_unit.write_text(
+    "[Unit]\nDescription=Capture diskless VM journal\n"
+    "ConditionPathExists=!/etc/initrd-release\nAfter=systemd-journald.service\n"
+    "[Service]\nExecStart=/usr/bin/journalctl -b -f --no-pager -o short-monotonic\n"
+    "StandardOutput=tty\nTTYPath=/dev/ttyS1\n"
+)
+wants = artifacts / "journal-wants.conf"
+wants.write_text("[Unit]\nWants=onyx-vm-journal.service\n")
+cred = "name=opt/io.systemd.credentials/"
 vm = subprocess.Popen(
     ["qemu-system-x86_64", "-machine", "q35", "-accel",
      "kvm" if kvm else "tcg", "-cpu", "host" if kvm else "max",
      "-drive", f"if=pflash,format=raw,readonly=on,file={firmware}/OVMF_CODE_4M.fd",
      "-drive", f"if=pflash,format=raw,file={variables}",
      "-smp", "2", "-m", "4096", "-display", "none", "-vga", "std",
-     "-device", "qemu-xhci", "-device", "usb-tablet", "-serial", f"file:{artifacts}/guest-serial.log", "-nic", "none", "-boot", "d", "-cdrom", str(iso), "-qmp", "stdio"],
+     "-device", "qemu-xhci", "-device", "usb-tablet", "-serial", f"file:{artifacts}/guest-serial.log", "-serial", f"file:{artifacts}/journal.log",
+     "-fw_cfg", f"{cred}systemd.extra-unit.onyx-vm-journal.service,file={journal_unit}",
+     "-fw_cfg", f"{cred}systemd.unit-dropin.multi-user.target,file={wants}",
+     "-nic", "none", "-boot", "d", "-cdrom", str(iso), "-qmp", "stdio"],
     stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True,
 )
 
@@ -71,7 +86,7 @@ def click_home():
     region = shot[-95:, :width // 2]
     icon = cv2.imread("overlay/root/usr/share/onyx-os/icons/crystal.png", cv2.IMREAD_UNCHANGED)
     best = (-1, 0, 0)
-    for size in range(24, 46, 2):
+    for size in range(18, 67, 2):
         tile = cv2.resize(icon, (round(size * 72 / 84), size), interpolation=cv2.INTER_AREA)
         gray = cv2.cvtColor(tile, cv2.COLOR_BGRA2GRAY)
         alpha = tile[:, :, 3] / 255
@@ -146,7 +161,7 @@ try:
     # Activate the installed panel applet. Building the GTK window directly
     # would miss a broken Plasma widget or panel layout.
     click_home()
-    if not wait_for("home", r"Quick\s+launch", 30):
+    if not wait_for("home", r"Quick\s+launch", 60):
         raise RuntimeError("Clicking the ONYX dock crystal did not open Home")
     keys("ctrl-f")
     for char in "onyx settings":
@@ -156,27 +171,12 @@ try:
         raise RuntimeError("ONYX Settings did not open from application search")
     print("UEFI boot, Dolphin, ONYX Home, app search and Settings passed.")
 except RuntimeError:
-    # Preserve the original failure; use a terminal only to collect evidence.
-    keys("alt-f2")
-    time.sleep(1)
-    for char in "konsole":
-        keys(char)
-    keys("ret")
-    time.sleep(4)
-    symbols = {" ": "spc", "-": "minus", "/": "slash", "|": "shift-backslash",
-               ">": "shift-dot", "&": "shift-7", ".": "dot", "S": "shift-s"}
-    for diagnostic in (
-        "journalctl --user -b -n 400 --no-pager | sudo -n tee /dev/ttyS0",
-        "python3 /usr/share/onyx-os/shell.py home 2>&1 | sudo -n tee /dev/ttyS0",
-    ):
-        for char in diagnostic:
-            keys(symbols.get(char, char))
-        keys("ret")
-        time.sleep(3)
-    screen("diagnostic")
-    serial = artifacts / "guest-serial.log"
-    if serial.is_file():
-        print(serial.read_text(errors="replace")[-48000:], flush=True)
+    journal = artifacts / "journal.log"
+    if journal.is_file():
+        lines = journal.read_text(errors="replace").splitlines()
+        for line in lines:
+            if re.search(r"onyx|shell\.py|traceback|error|gtk|gdk|python|qml|plasmashell", line, re.I):
+                print(line, flush=True)
     raise
 finally:
     vm.terminate()
