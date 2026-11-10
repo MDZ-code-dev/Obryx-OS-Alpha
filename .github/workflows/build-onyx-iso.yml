@@ -7,6 +7,10 @@ on:
       - onyx-0.3-desktop
       - onyx-0.4-desktop
 
+concurrency:
+  group: onyx-iso-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: write
 

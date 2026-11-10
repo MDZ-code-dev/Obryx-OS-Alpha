@@ -160,3 +160,5 @@ done
 test -s /usr/lib64/qt6/plugins/kwin/effects/plugins/libforceblur.so || exit 47
 test -s /usr/lib64/qt6/plugins/kwin/effects/plugins/kwin4_effect_shapecorners.so || exit 48
 echo "ONYX 0.4 glass compositor and rounded corners installed."
+
+printf "onyx-live\n" > /etc/hostname

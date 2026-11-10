@@ -82,7 +82,7 @@ class Shell(Gtk.Application):
         self.window.set_app_paintable(True)
         self.window.connect("key-press-event", self.key_press)
         self.window.connect("destroy", lambda *_: setattr(self, "window", None))
-        frame = styled(Gtk.Box(), "frame")
+        frame = styled(Gtk.Box(), "onyx-frame")
         self.window.add(frame)
         rail = styled(Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8), "rail")
         frame.pack_start(rail, False, False, 0)

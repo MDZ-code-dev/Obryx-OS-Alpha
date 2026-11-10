@@ -31,6 +31,13 @@
                 launcher.currentConfigGroup = [];
                 launcher.writeConfig("url", "file:///usr/share/applications/onyx-home.desktop");
             }
+            if (j === 3) {
+                widget.currentConfigGroup = ["Appearance"];
+                widget.writeConfig("showDate", false);
+                widget.writeConfig("use24hFormat", 2);
+                widget.writeConfig("fontSize", 11);
+                widget.writeConfig("autoFontAndSize", false);
+            }
             if (j === 1) {
                 widget.currentConfigGroup = ["General"];
                 widget.writeConfig("iconSize", 38);

@@ -1,0 +1,10 @@
+[General]
+count=1
+rules=onyx-shell
+
+[onyx-shell]
+Description=ONYX Home and Settings
+wmclass=org.onyx.Desktop.(Home|Settings)
+wmclassmatch=3
+noborder=true
+noborderrule=2
