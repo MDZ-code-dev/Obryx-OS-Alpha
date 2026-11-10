@@ -1,0 +1,13 @@
+#!/bin/bash
+exec >/dev/ttyS0 2>&1
+echo ONYX_DIAGNOSTIC
+ls -la /usr/share/plasma/plasmoids/org.onyx.home /usr/share/onyx-os
+for dir in /home/*; do
+    ls -la "$dir/.local/state/onyx-os/"
+    cat "$dir/.local/state/onyx-os/"*.log
+    grep -E 'plugin=|globalShortcut=|layoutVersion=|launchers=' "$dir/.config/plasma-org.kde.plasma.desktop-appletsrc"
+done
+journalctl -b --no-pager | grep -E -i 'org.onyx|onyx.home|shell.py|plasmoid.*error|gtk-launch|qml.*runner|module.*not installed' | tail -100
+ls -1 /etc/xdg/autostart | grep -Ei 'fedora|welcome|anaconda'
+ls -1 /usr/share/applications | grep -Ei 'fedora|welcome|anaconda|liveinst'
+echo DIAGNOSTIC_DONE

@@ -1,0 +1,34 @@
+name: Verify published ONYX desktop
+on:
+  push:
+    branches: [onyx-live-qa]
+permissions:
+  contents: read
+jobs:
+  uefi:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 22
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch verified live image
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download v0.3.1-alpha.3 -p '*.part*' -p '*.sha256'
+          cat *.iso.part* > ONYX-OS-0.3.1-Alpha-x86_64.iso
+          sha256sum -c *.sha256
+      - name: Test desktop
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends ovmf qemu-system-x86 tesseract-ocr python3-pil mtools dosfstools
+          truncate -s 8M qa.img
+          mkfs.fat -n ONYXQA qa.img
+          mcopy -i qa.img tools/check-guest /check
+          sudo /usr/bin/python3 tools/inspect-live.py ONYX-OS-0.3.1-Alpha-x86_64.iso
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: onyx-uefi-results
+          path: |
+            vm-test/*.png
+            vm-test/guest.log
