@@ -4,7 +4,7 @@ set -Eeuo pipefail
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 CACHE="${ONYX_WORKDIR:-$ROOT/work}/effects"
 DEST="$ROOT/overlay/root"
-dnf -y --setopt=minrate=100k --setopt=timeout=20 install cmake gcc-c++ git extra-cmake-modules kwin-devel \
+dnf -y --setopt=minrate=102400 --setopt=timeout=20 install cmake gcc-c++ git extra-cmake-modules kwin-devel \
   kf6-kconfigwidgets-devel libepoxy-devel kf6-kcmutils-devel kf6-ki18n-devel \
   qt6-qtbase-private-devel qt6-qttools-devel wayland-devel libdrm-devel \
   kf6-kwindowsystem-devel kf6-knotifications-devel kf6-kio-devel \
