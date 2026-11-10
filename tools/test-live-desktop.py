@@ -75,9 +75,33 @@ def wait_for(name, pattern, seconds):
 try:
     receive()
     command("qmp_capabilities")
-    # Wait for a working Plasma shortcut. Retry while the live system starts.
+    # GRUB treats the E in Super+E as "edit boot entry". Let the default
+    # entry boot, or explicitly select it when the ONYX menu is visible.
+    start = time.monotonic()
+    menu_selected = False
+    last_boot_frame = -1
+    while time.monotonic() - start < 180:
+        elapsed = int(time.monotonic() - start)
+        name = f"boot-{elapsed:03d}"
+        words = screen(name)
+        if not menu_selected and re.search(r"Start\s+ONYX\s+OS", words, re.I):
+            keys("ret")
+            menu_selected = True
+        if re.search(r"\b\d{1,2}:\d{2}\b", words) and not re.search(
+            r"GRUB|firmware|boot manager", words, re.I
+        ):
+            break
+        last_boot_frame = elapsed
+        time.sleep(2)
+    else:
+        print(f"Boot observation ended at {last_boot_frame}s", flush=True)
+
+    # Keep early boot captures, and never send desktop keys into GRUB.
     deadline = time.monotonic() + 600
     while time.monotonic() < deadline:
+        words = screen("pre-shortcut")
+        if re.search(r"GRUB|Start\s+ONYX\s+OS|edit the selected entry", words, re.I):
+            raise RuntimeError("VM is still at the bootloader before the desktop shortcut")
         keys("meta_l-e")
         if wait_for("file-manager", r"\bDolphin\b|\bTrash\b", 12):
             break
