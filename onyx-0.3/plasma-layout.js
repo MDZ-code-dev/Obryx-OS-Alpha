@@ -13,7 +13,7 @@
     try {
         dock = new Panel();
         dock.location = "bottom";
-        dock.height = 78;
+        dock.height = 88;
         dock.floating = true;
         dock.alignment = "center";
         dock.lengthMode = "fit";

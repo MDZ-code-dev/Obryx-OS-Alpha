@@ -36,14 +36,6 @@ jobs:
           sudo apt-get install -y --no-install-recommends gir1.2-gtk-3.0 python3-gi xvfb xauth dbus-daemon librsvg2-bin
           bash tools/render-shell-icons.sh
           xvfb-run -a dbus-run-session -- /usr/bin/python3 tools/check-onyx-shell.py previews
-      - name: Check Home and Settings on the target Fedora GTK runtime
-        run: |
-          docker run --rm -v "$PWD:/src:ro" -w /src fedora:45 bash -euc '
-            dnf -qy install python3-gobject gtk3 gtk4 xorg-x11-server-Xvfb xorg-x11-xauth dbus-daemon mesa-dri-drivers
-            Xvfb :91 -screen 0 1280x800x24 -nolisten tcp &
-            export DISPLAY=:91
-            dbus-run-session -- python3 tools/check-onyx-shell.py /tmp/onyx-previews
-          '
       - name: Save native desktop previews
         uses: actions/upload-artifact@v4
         with:

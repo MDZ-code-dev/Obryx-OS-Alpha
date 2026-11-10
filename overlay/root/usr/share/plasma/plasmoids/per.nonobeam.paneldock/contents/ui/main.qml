@@ -136,7 +136,9 @@ PlasmoidItem {
         id: dock
 
         Layout.preferredWidth:  iconRow.implicitWidth  + 2 * root.paddingH
-        Layout.preferredHeight: iconRow.implicitHeight + 2 * root.paddingV
+        Layout.fillHeight: true
+        Layout.minimumHeight: Math.ceil(root.iconSize * root.hoverScale) + root.hoverLift + 4
+        Layout.preferredHeight: Layout.minimumHeight
         implicitWidth:  Layout.preferredWidth
         implicitHeight: Layout.preferredHeight
 
@@ -149,7 +151,9 @@ PlasmoidItem {
 
         RowLayout {
             id: iconRow
-            anchors.centerIn: parent
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: 4
             spacing: root.iconSpacing
 
             Repeater {

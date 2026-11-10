@@ -5,3 +5,4 @@ Exec=/usr/bin/python3 /usr/share/onyx-os/shell.py home
 Icon=/usr/share/onyx-os/crystal.svg
 Categories=System;
 Terminal=false
+StartupWMClass=org.onyx.Desktop.Home
