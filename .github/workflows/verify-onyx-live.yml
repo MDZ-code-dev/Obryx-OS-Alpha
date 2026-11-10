@@ -23,7 +23,7 @@ jobs:
           sudo apt-get install -y --no-install-recommends ovmf qemu-system-x86 tesseract-ocr python3-pil mtools dosfstools
           truncate -s 8M qa.img
           mkfs.fat -n ONYXQA qa.img
-          mcopy -i qa.img tools/check-guest /check
+          mcopy -i qa.img tools/check-guest ::/check
           sudo /usr/bin/python3 tools/inspect-live.py ONYX-OS-0.3.1-Alpha-x86_64.iso
       - uses: actions/upload-artifact@v4
         if: always()
