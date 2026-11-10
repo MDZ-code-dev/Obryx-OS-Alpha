@@ -8,7 +8,8 @@ dnf -y install cmake gcc-c++ git extra-cmake-modules kwin-devel \
   kf6-kconfigwidgets-devel libepoxy-devel kf6-kcmutils-devel kf6-ki18n-devel \
   qt6-qtbase-private-devel qt6-qttools-devel wayland-devel libdrm-devel \
   kf6-kwindowsystem-devel kf6-knotifications-devel kf6-kio-devel \
-  kf6-kcrash-devel kf6-kguiaddons-devel kf6-kglobalaccel-devel kdecoration-devel
+  kf6-kcrash-devel kf6-kguiaddons-devel kf6-kglobalaccel-devel kdecoration-devel \
+  libplasma-devel plasma-workspace-devel kf6-kdeclarative-devel
 mkdir -p "$CACHE"
 build_effect() {
   local name="$1" url="$2" revision="$3"
