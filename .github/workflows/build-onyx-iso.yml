@@ -34,7 +34,7 @@ jobs:
       - name: Check Home and Settings on the target Fedora GTK runtime
         run: |
           docker run --rm -v "$PWD:/src:ro" -w /src fedora:45 bash -euc '
-            dnf -qy install python3-gobject gtk3 xorg-x11-server-Xvfb xorg-x11-xauth dbus-daemon mesa-dri-drivers
+            dnf -qy install python3-gobject gtk3 gtk4 xorg-x11-server-Xvfb xorg-x11-xauth dbus-daemon mesa-dri-drivers
             Xvfb :91 -screen 0 1280x800x24 -nolisten tcp &
             export DISPLAY=:91
             dbus-run-session -- python3 tools/check-onyx-shell.py /tmp/onyx-previews
