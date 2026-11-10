@@ -1,0 +1,17 @@
+[kdeglobals][General]
+ColorScheme=OnyxGlass
+
+[kdeglobals][KDE]
+widgetStyle=Breeze
+
+[kdeglobals][Icons]
+Theme=breeze-dark
+
+[plasmarc][Theme]
+name=onyx-glass
+
+[KSplash]
+Theme=org.onyx.desktop
+
+[Wallpaper]
+Image=ONYX
