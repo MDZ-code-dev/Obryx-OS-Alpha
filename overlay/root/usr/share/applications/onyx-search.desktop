@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=ONYX Search
+Comment=Find installed applications
+Exec=/usr/bin/python3 /usr/share/onyx-os/shell.py apps
+Icon=system-search
+Terminal=false
+Categories=Utility;
+StartupWMClass=org.onyx.Desktop.Apps

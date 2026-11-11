@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 """ONYX Home and Settings for a native Plasma session."""
+import json
 import subprocess
 import sys
 from pathlib import Path
@@ -21,7 +22,7 @@ SETTINGS = (
     ("Sound", "Speakers, microphones and volume", "volume-2", "kcm_pulseaudio"),
     ("Wi-Fi & network", "Connections and saved networks", "wifi", "kcm_networkmanagement"),
     ("Bluetooth", "Pair and manage devices", "bluetooth", "kcm_bluetooth"),
-    ("Appearance", "Colors and desktop themes", "palette", "kcm_colors"),
+    ("Appearance", "Wallpaper and desktop animations", "palette", "kcm_colors"),
     ("All settings", "Open the full system settings", "settings-2", None),
 )
 
@@ -92,7 +93,7 @@ class Shell(Gtk.Application):
         for key, title, glyph in (("home", "Home", "house"),
                                   ("apps", "Applications", "layout-grid"),
                                   ("settings", "Settings", "settings-2")):
-            item = button(icon(glyph, 23), lambda k=key: self.show_page(k), "nav")
+            item = button(icon(glyph, 23), lambda k=key: self.navigate(k), "nav")
             item.set_tooltip_text(title)
             item.get_accessible().set_name(title)
             self.nav[key] = item
@@ -121,6 +122,13 @@ class Shell(Gtk.Application):
         self.show_page(self.page)
         self.window.present()
 
+    def navigate(self, key):
+        if key == self.page:
+            self.show_page(key)
+        else:
+            Gio.Subprocess.new([sys.executable, str(ROOT / "shell.py"), key],
+                               Gio.SubprocessFlags.NONE)
+
     def move_window(self, widget, event):
         if event.button == 1:
             self.window.begin_move_drag(event.button, int(event.x_root), int(event.y_root), event.time)
@@ -135,7 +143,7 @@ class Shell(Gtk.Application):
             widget.close()
             return True
         if event.state & Gdk.ModifierType.CONTROL_MASK and event.keyval == Gdk.KEY_f:
-            self.show_page("apps")
+            self.navigate("apps")
             return True
         return False
 
@@ -280,12 +288,45 @@ class Shell(Gtk.Application):
                  "--key", "AnimationDurationFactor", "0.75" if active else "0"]))
             row.pack_end(toggle, False, False, 0)
             body.add(row)
-        more = button(label("More " + title.lower() + " settings  ›", "row-title"),
+        if module == "kcm_colors":
+            body.add(button(label("Choose wallpaper…", "row-title"), self.choose_wallpaper, "setting"))
+            body.add(label("Choose a JPG or PNG for every desktop screen.", "detail"))
+        more = button(label("Advanced KDE " + title.lower() + " settings  ›", "row-title"),
                       lambda: self.open_setting(module), "setting")
-        body.add(more)
+        if module != "kcm_colors":
+            body.add(more)
         self.stack.add_named(body, "detail")
         body.show_all()
         self.stack.set_visible_child_name("detail")
+
+    def choose_wallpaper(self):
+        chooser = Gtk.FileChooserDialog(title="Choose wallpaper", parent=self.window,
+                                        action=Gtk.FileChooserAction.OPEN)
+        chooser.add_buttons("Cancel", Gtk.ResponseType.CANCEL, "Apply", Gtk.ResponseType.OK)
+        images = Gtk.FileFilter()
+        images.set_name("Images (PNG, JPG)")
+        images.add_mime_type("image/png")
+        images.add_mime_type("image/jpeg")
+        chooser.add_filter(images)
+        if chooser.run() == Gtk.ResponseType.OK:
+            path = Path(chooser.get_filename())
+            try:
+                GdkPixbuf.Pixbuf.new_from_file_at_scale(str(path), 320, 200, True)
+                target = Path.home() / ".local/share/onyx-os/wallpapers" / path.name
+                target.parent.mkdir(parents=True, exist_ok=True)
+                if path.resolve() != target.resolve():
+                    target.write_bytes(path.read_bytes())
+                script = """var ds = desktops(); for (var i=0; i<ds.length; i++) {
+                    var d = ds[i]; d.wallpaperPlugin = 'org.kde.image';
+                    d.currentConfigGroup = ['Wallpaper', 'org.kde.image', 'General'];
+                    d.writeConfig('Image', %s);
+                }""" % json.dumps(target.as_uri())
+                if self.apply_value(["qdbus6", "org.kde.plasmashell", "/PlasmaShell",
+                                     "org.kde.PlasmaShell.evaluateScript", script]):
+                    self.report("Wallpaper applied.")
+            except (OSError, GLib.Error) as exc:
+                self.report("Could not load wallpaper: " + str(exc))
+        chooser.destroy()
 
     def read_value(self, args):
         try:
@@ -316,5 +357,5 @@ class Shell(Gtk.Application):
 
 
 if __name__ == "__main__":
-    page = "settings" if sys.argv[1:] == ["settings"] else "home"
+    page = sys.argv[1] if len(sys.argv) > 1 and sys.argv[1] in ("home", "apps", "settings") else "home"
     sys.exit(Shell(page).run(sys.argv[:1]))

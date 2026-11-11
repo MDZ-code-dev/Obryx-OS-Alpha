@@ -1,0 +1,17 @@
+#!/usr/bin/python3
+"""Reveal the ONYX crystal briefly, then show real Fastfetch statistics."""
+import os
+import sys
+import time
+if not sys.argv[1:] and sys.stdout.isatty() and os.environ.get('TERM') != 'dumb' and os.environ.get('ONYX_ANIMATION', '1') != '0':
+    try:
+        lines = open('/usr/share/onyx-os/fastfetch-logo.txt').read().replace('$1', '').splitlines()
+        sys.stdout.write('\033[?25l\033[36m')
+        for line in lines:
+            print(line, flush=True)
+            time.sleep(0.045)
+        sys.stdout.write('\033[0m' + '\033[1A\033[2K' * len(lines))
+    finally:
+        sys.stdout.write('\033[0m\033[?25h')
+        sys.stdout.flush()
+os.execv('/usr/bin/fastfetch', ['/usr/bin/fastfetch', *sys.argv[1:]])
