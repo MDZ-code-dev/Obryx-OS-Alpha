@@ -165,8 +165,9 @@ printf "onyx-live\n" > /etc/hostname
 
 # Make advanced KDE settings visually consistent without replacing hardware controls.
 for dir in /etc/xdg /etc/skel/.config; do
-  kwriteconfig6 --file "$dir/kwinrulesrc" --group General --key count 1
-  kwriteconfig6 --file "$dir/kwinrulesrc" --group General --key rules onyx-settings-glass
+  install -m 644 /etc/xdg/kwinrulesrc "$dir/kwinrulesrc" 2>/dev/null || true
+  kwriteconfig6 --file "$dir/kwinrulesrc" --group General --key count 2
+  kwriteconfig6 --file "$dir/kwinrulesrc" --group General --key rules onyx-shell,onyx-settings-glass
   kwriteconfig6 --file "$dir/kwinrulesrc" --group onyx-settings-glass --key Description "ONYX advanced settings glass"
   kwriteconfig6 --file "$dir/kwinrulesrc" --group onyx-settings-glass --key wmclass systemsettings
   kwriteconfig6 --file "$dir/kwinrulesrc" --group onyx-settings-glass --key wmclassmatch 1

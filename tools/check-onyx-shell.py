@@ -7,6 +7,15 @@ source = Path(__file__).resolve().parents[1] / "overlay/root/usr/share/onyx-os/s
 spec = importlib.util.spec_from_file_location("onyx_shell", source)
 shell = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(shell)
+if len(sys.argv) > 2 and sys.argv[1] == '--app-only':
+    page = sys.argv[2]
+    instance = shell.Shell(page)
+    instance.register(None)
+    instance.activate()
+    assert list(instance.nav) == [page]
+    assert instance.get_application_id().endswith(page.capitalize())
+    instance.window.destroy()
+    sys.exit(0)
 app = shell.Shell("home")
 app.register(None)
 app.activate()
@@ -30,13 +39,9 @@ app.window.destroy()
 
 # Every launcher owns an independent application ID and navigation rail.
 assert list(app.nav) == ['home']
+import subprocess
 for page in ('apps', 'settings'):
-    instance = shell.Shell(page)
-    instance.register(None)
-    instance.activate()
-    assert list(instance.nav) == [page]
-    assert instance.get_application_id().endswith(page.capitalize())
-    instance.window.destroy()
+    subprocess.run([sys.executable, __file__, '--app-only', page], check=True)
 
 # Exercise wallpaper decoding, durable copy and the exact Plasma D-Bus request.
 import tempfile

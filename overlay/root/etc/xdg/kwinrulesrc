@@ -4,7 +4,7 @@ rules=onyx-shell
 
 [onyx-shell]
 Description=ONYX Home and Settings
-wmclass=org.onyx.Desktop.(Home|Settings)
+wmclass=org.onyx.Desktop.(Home|Settings|Apps)
 wmclassmatch=3
 noborder=true
 noborderrule=2

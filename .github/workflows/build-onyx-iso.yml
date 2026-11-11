@@ -33,7 +33,7 @@ jobs:
       - name: Exercise ONYX Home, application search and Settings
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends gir1.2-gtk-3.0 python3-gi xvfb xauth dbus-daemon librsvg2-bin
+          sudo apt-get install -y --no-install-recommends gir1.2-gtk-3.0 python3-gi xvfb xauth dbus-daemon librsvg2-bin python3-pil
           bash tools/render-shell-icons.sh
           xvfb-run -a dbus-run-session -- /usr/bin/python3 tools/check-onyx-shell.py previews
       - name: Save native desktop previews
@@ -81,7 +81,7 @@ jobs:
       - name: Make live previews readable for remote review
         if: always()
         run: |
-          python3 - <<'PY'
+          /usr/bin/python3 - <<'PY'
           import base64
           import io
           from pathlib import Path
