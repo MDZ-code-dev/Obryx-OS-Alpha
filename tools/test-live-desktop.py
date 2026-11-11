@@ -128,6 +128,7 @@ def type_text(text):
 
 
 def click_word(word):
+    time.sleep(1)
     screen('control-location')
     data = subprocess.check_output(['tesseract', str(artifacts/'control-location.png'),
                                    'stdout', '--psm', '11', 'tsv'], text=True, stderr=subprocess.DEVNULL)

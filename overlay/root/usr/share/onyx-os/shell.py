@@ -131,6 +131,8 @@ class Shell(Gtk.Application):
         else:
             Gio.Subprocess.new([sys.executable, str(ROOT / "shell.py"), key],
                                Gio.SubprocessFlags.NONE)
+            if self.page == "home":
+                self.window.close()
 
     def move_window(self, widget, event):
         if event.button == 1:
