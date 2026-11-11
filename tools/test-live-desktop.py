@@ -121,6 +121,32 @@ def click_home():
     return x, y, width, height
 
 
+def type_text(text):
+    mapping = {' ': 'spc', '/': 'slash', '.': 'dot', '-': 'minus', '_': 'shift-minus'}
+    for char in text:
+        keys(mapping.get(char, 'shift-' + char.lower() if char.isupper() else char))
+
+
+def click_word(word):
+    screen('control-location')
+    data = subprocess.check_output(['tesseract', str(artifacts/'control-location.png'),
+                                   'stdout', '--psm', '11', 'tsv'], text=True, stderr=subprocess.DEVNULL)
+    for line in data.splitlines()[1:]:
+        columns = line.split('\t')
+        if len(columns) >= 12 and columns[11].strip().casefold() == word.casefold():
+            left, top, width, height = map(int, columns[6:10])
+            with Image.open(artifacts/'control-location.png') as picture:
+                sw, sh = picture.size
+            command('input-send-event', events=[
+                {'type':'abs','data':{'axis':'x','value':round((left+width/2)*32767/(sw-1))}},
+                {'type':'abs','data':{'axis':'y','value':round((top+height/2)*32767/(sh-1))}}])
+            for down in (True,False):
+                command('input-send-event', events=[{'type':'btn','data':{'button':'left','down':down}}])
+            time.sleep(1)
+            return
+    raise RuntimeError('Could not locate control: '+word)
+
+
 def wait_for(name, pattern, seconds):
     deadline = time.monotonic() + seconds
     while time.monotonic() < deadline:
@@ -185,7 +211,26 @@ try:
     keys("ret")
     if not wait_for("settings", r"(?s)\bDisplay\b.*\bSound\b.*\bBluetooth\b|Resolution,?\s+scale.*Speakers", 45):
         raise RuntimeError("ONYX Settings did not open from application search")
-    keys("alt-f4")
+    click_word('Appearance')
+    if not wait_for('appearance', r'Choose wallpaper', 15):
+        raise RuntimeError('Appearance has no wallpaper control')
+    click_word('Choose')
+    time.sleep(1)
+    keys('ctrl-l')
+    type_text('/usr/share/wallpapers/ONYX/contents/images/1920x1080.png')
+    keys('ret')
+    if not wait_for('wallpaper', r'Wallpaper applied', 20):
+        raise RuntimeError('Wallpaper picker did not apply through Plasma')
+    keys('alt-f4')
+    # Launch the real terminal command and inspect its output.
+    keys('ctrl-alt-t')
+    if not wait_for('terminal', r'Konsole|liveuser|onyx', 20):
+        raise RuntimeError('Terminal did not open')
+    type_text('fastfetch')
+    keys('ret')
+    if not wait_for('fastfetch', r'(?s)ONYX.*(?:0[.,]4.*Kernel|CPU)', 30):
+        raise RuntimeError('Fastfetch did not show ONYX system statistics')
+    keys('alt-f4')
     time.sleep(1)
     # Measure the dock, away from its clock, before and after hovering an app.
     command("input-send-event", events=[

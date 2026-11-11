@@ -87,7 +87,7 @@ jobs:
           from pathlib import Path
           from PIL import Image
           folder = Path("vm-test")
-          names = ["home.png", "settings.png", "file-manager.png", "dock-idle.png", "dock-hover.png"]
+          names = ["home.png", "settings.png", "wallpaper.png", "fastfetch.png", "file-manager.png", "dock-idle.png", "dock-hover.png"]
           paths = [folder / name for name in names]
           paths += sorted(folder.glob("boot-*.png"))[-3:]
           for path in paths:
@@ -128,7 +128,7 @@ jobs:
               --notes "Live USB alpha. Validated in a diskless UEFI virtual machine." \
               --prerelease
           fi
-          gh release upload "$TAG" "$SHA" vm-test/desktop.png vm-test/home.png vm-test/settings.png --clobber
+          gh release upload "$TAG" "$SHA" vm-test/desktop.png vm-test/home.png vm-test/settings.png vm-test/wallpaper.png vm-test/fastfetch.png --clobber
           SIZE=$(stat -c %s "$ISO")
           SINGLE_LIMIT=$((1800 * 1024 * 1024))
           if (( SIZE < SINGLE_LIMIT )); then
