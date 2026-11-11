@@ -27,3 +27,37 @@ for page in ("home", "apps", "settings"):
 app.setting_detail("Appearance", "kcm_colors")
 assert app.stack.get_visible_child_name() == "detail"
 app.window.destroy()
+
+# Every launcher owns an independent application ID and navigation rail.
+assert list(app.nav) == ['home']
+for page in ('apps', 'settings'):
+    instance = shell.Shell(page)
+    instance.register(None)
+    instance.activate()
+    assert list(instance.nav) == [page]
+    assert instance.get_application_id().endswith(page.capitalize())
+    instance.window.destroy()
+
+# Exercise wallpaper decoding, durable copy and the exact Plasma D-Bus request.
+import tempfile
+from unittest.mock import patch
+with tempfile.TemporaryDirectory() as folder:
+    picture = Path(folder) / 'wallpaper with spaces.png'
+    pixbuf = shell.GdkPixbuf.Pixbuf.new(shell.GdkPixbuf.Colorspace.RGB, False, 8, 32, 32)
+    pixbuf.fill(0x335577ff)
+    pixbuf.savev(str(picture), 'png', [], [])
+    calls = []
+    class Bus:
+        def call_sync(self, *args):
+            calls.append(args)
+            return shell.GLib.Variant('(s)', ('',))
+    messages = []
+    with patch.object(shell.Path, 'home', return_value=Path(folder)), patch.object(shell.Gio, 'bus_get_sync', return_value=Bus()), patch.object(app, 'report', side_effect=messages.append):
+        assert app.apply_wallpaper(picture)
+        assert len(calls) == 1
+        assert calls[0][0:4] == ('org.kde.plasmashell', '/PlasmaShell', 'org.kde.PlasmaShell', 'evaluateScript')
+        assert 'desktops()' in calls[0][4].unpack()[0]
+        assert len(list((Path(folder)/'.local/share/onyx-os/wallpapers').glob('*.png'))) == 1
+        assert not app.apply_wallpaper(Path(folder)/'missing.png')
+        assert len(calls) == 1
+print('Separate application IDs and wallpaper apply/error tests passed.')

@@ -24,18 +24,18 @@ ln -sfn /usr/share/wallpapers/ONYX /usr/share/wallpapers/Default
 if [ -f /usr/lib/os-release ]; then
   sed -i \
     -e 's/^NAME=.*/NAME="ONYX OS"/' \
-    -e 's/^PRETTY_NAME=.*/PRETTY_NAME="ONYX OS 0.4 Alpha 1"/' \
+    -e 's/^PRETTY_NAME=.*/PRETTY_NAME="ONYX OS 0.4 Alpha 2"/' \
     /usr/lib/os-release
 elif [ -f /etc/os-release ]; then
   sed -i \
     -e 's/^NAME=.*/NAME="ONYX OS"/' \
-    -e 's/^PRETTY_NAME=.*/PRETTY_NAME="ONYX OS 0.4 Alpha 1"/' \
+    -e 's/^PRETTY_NAME=.*/PRETTY_NAME="ONYX OS 0.4 Alpha 2"/' \
     /etc/os-release
 fi
 test -e /usr/share/wallpapers/Default/contents/images/1920x1080.png || {
   echo "FATAL: ONYX system wallpaper was not set" >&2; exit 39;
 }
-grep -q 'ONYX OS 0.4 Alpha 1' /usr/lib/os-release /etc/os-release 2>/dev/null || {
+grep -q 'ONYX OS 0.4 Alpha 2' /usr/lib/os-release /etc/os-release 2>/dev/null || {
   echo "FATAL: ONYX OS branding not present in os-release" >&2; exit 40;
 }
 echo "ONYX-OS: default system wallpaper, dark UI configuration and OS name verified."
@@ -111,7 +111,7 @@ for entry in /etc/xdg/autostart/*welcome*.desktop /usr/share/applications/org.kd
   printf '[Desktop Entry]\nType=Application\nHidden=true\n' > "/etc/skel/.config/autostart/$(basename "$entry")"
 done
 sed -i '/^LOGO=/d; /^VARIANT=/d; /^VERSION=/d' /usr/lib/os-release
-printf 'LOGO=onyx-crystal\nVARIANT="ONYX Desktop"\nVERSION="0.4 Alpha 1"\n' >> /usr/lib/os-release
+printf 'LOGO=onyx-crystal\nVARIANT="ONYX Desktop"\nVERSION="0.4 Alpha 2"\n' >> /usr/lib/os-release
 
 # Fedora's live session can inject its own per-user welcome preferences.
 # Apply the live image policy before the KDED module starts.
@@ -162,3 +162,20 @@ test -s /usr/lib64/qt6/plugins/kwin/effects/plugins/kwin4_effect_shapecorners.so
 echo "ONYX 0.4 glass compositor and rounded corners installed."
 
 printf "onyx-live\n" > /etc/hostname
+
+# Make advanced KDE settings visually consistent without replacing hardware controls.
+for dir in /etc/xdg /etc/skel/.config; do
+  kwriteconfig6 --file "$dir/kwinrulesrc" --group General --key count 1
+  kwriteconfig6 --file "$dir/kwinrulesrc" --group General --key rules onyx-settings-glass
+  kwriteconfig6 --file "$dir/kwinrulesrc" --group onyx-settings-glass --key Description "ONYX advanced settings glass"
+  kwriteconfig6 --file "$dir/kwinrulesrc" --group onyx-settings-glass --key wmclass systemsettings
+  kwriteconfig6 --file "$dir/kwinrulesrc" --group onyx-settings-glass --key wmclassmatch 1
+  kwriteconfig6 --file "$dir/kwinrulesrc" --group onyx-settings-glass --key opacityactive 92
+  kwriteconfig6 --file "$dir/kwinrulesrc" --group onyx-settings-glass --key opacityactiverule 2
+  kwriteconfig6 --file "$dir/kwinrulesrc" --group onyx-settings-glass --key opacityinactive 92
+  kwriteconfig6 --file "$dir/kwinrulesrc" --group onyx-settings-glass --key opacityinactiverule 2
+done
+test -x /usr/bin/fastfetch || exit 49
+/usr/bin/fastfetch --config /etc/xdg/fastfetch/config.jsonc --pipe > /tmp/onyx-fastfetch-check
+ grep -q 'ONYX OS 0.4' /tmp/onyx-fastfetch-check || exit 50
+rm -f /tmp/onyx-fastfetch-check

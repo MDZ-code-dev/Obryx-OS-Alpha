@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 """ONYX Home and Settings for a native Plasma session."""
+import hashlib
 import json
 import subprocess
 import sys
@@ -67,7 +68,7 @@ class Shell(Gtk.Application):
             self.window.present()
             return
         self.window = Gtk.ApplicationWindow(application=self)
-        self.window.set_title("ONYX Settings" if self.page == "settings" else "ONYX Home")
+        self.window.set_title("ONYX " + {"settings": "Settings", "apps": "Search", "home": "Home"}[self.page])
         screen = self.window.get_screen()
         visual = screen.get_rgba_visual()
         if visual:
@@ -91,8 +92,10 @@ class Shell(Gtk.Application):
         rail.pack_start(brand, False, False, 18)
         self.nav = {}
         for key, title, glyph in (("home", "Home", "house"),
-                                  ("apps", "Applications", "layout-grid"),
+                                  ("apps", "Search", "layout-grid"),
                                   ("settings", "Settings", "settings-2")):
+            if key != self.page:
+                continue
             item = button(icon(glyph, 23), lambda k=key: self.navigate(k), "nav")
             item.set_tooltip_text(title)
             item.get_accessible().set_name(title)
@@ -112,7 +115,7 @@ class Shell(Gtk.Application):
         self.built_pages = set()
         for key, title in (("home", "Home"), ("apps", "Applications"), ("settings", "Settings")):
             panel = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
-            panel.pack_start(label("ONYX OS 0.4 · ALPHA 1", "wordmark"), False, False, 0)
+            panel.pack_start(label("ONYX OS 0.4 · ALPHA 2", "wordmark"), False, False, 0)
             heading = Gtk.EventBox()
             heading.add(label(title, "heading"))
             heading.connect("button-press-event", self.move_window)
@@ -198,6 +201,10 @@ class Shell(Gtk.Application):
             styled(tile, color)
             cards.attach(tile, i % 2, i // 2, 1, 1)
         panel.pack_start(scroll(cards), True, True, 0)
+        links = Gtk.Box(spacing=12, homogeneous=True)
+        links.add(button(label("Search apps", "row-title"), lambda: self.navigate("apps"), "setting"))
+        links.add(button(label("Settings", "row-title"), lambda: self.navigate("settings"), "setting"))
+        panel.pack_start(links, False, False, 0)
 
     def build_apps(self, panel):
         self.search = Gtk.SearchEntry(placeholder_text="Search installed applications")
@@ -310,23 +317,35 @@ class Shell(Gtk.Application):
         chooser.add_filter(images)
         if chooser.run() == Gtk.ResponseType.OK:
             path = Path(chooser.get_filename())
-            try:
-                GdkPixbuf.Pixbuf.new_from_file_at_scale(str(path), 320, 200, True)
-                target = Path.home() / ".local/share/onyx-os/wallpapers" / path.name
-                target.parent.mkdir(parents=True, exist_ok=True)
-                if path.resolve() != target.resolve():
-                    target.write_bytes(path.read_bytes())
-                script = """var ds = desktops(); for (var i=0; i<ds.length; i++) {
-                    var d = ds[i]; d.wallpaperPlugin = 'org.kde.image';
-                    d.currentConfigGroup = ['Wallpaper', 'org.kde.image', 'General'];
-                    d.writeConfig('Image', %s);
-                }""" % json.dumps(target.as_uri())
-                if self.apply_value(["qdbus6", "org.kde.plasmashell", "/PlasmaShell",
-                                     "org.kde.PlasmaShell.evaluateScript", script]):
-                    self.report("Wallpaper applied.")
-            except (OSError, GLib.Error) as exc:
-                self.report("Could not load wallpaper: " + str(exc))
+            self.apply_wallpaper(path)
         chooser.destroy()
+
+    def apply_wallpaper(self, path):
+        try:
+            path = Path(path)
+            GdkPixbuf.Pixbuf.new_from_file_at_scale(str(path), 320, 200, True)
+            data = path.read_bytes()
+            digest = hashlib.sha256(data).hexdigest()[:20]
+            target = Path.home() / ".local/share/onyx-os/wallpapers" / (digest + path.suffix.lower())
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(data)
+            script = """var ds = desktops(); if (!ds.length) throw Error('No desktop');
+                for (var i=0; i<ds.length; i++) {
+                var d = ds[i]; d.wallpaperPlugin = 'org.kde.image';
+                d.currentConfigGroup = ['Wallpaper', 'org.kde.image', 'General'];
+                d.writeConfig('Image', %s); }""" % json.dumps(target.as_uri())
+            bus = Gio.bus_get_sync(Gio.BusType.SESSION, None)
+            reply = bus.call_sync('org.kde.plasmashell', '/PlasmaShell',
+                'org.kde.PlasmaShell', 'evaluateScript', GLib.Variant('(s)', (script,)),
+                GLib.VariantType.new('(s)'), Gio.DBusCallFlags.NONE, 5000, None)
+            result = reply.unpack()[0]
+            if 'Error' in result or 'Exception' in result:
+                raise ValueError(result)
+            self.report("Wallpaper applied.")
+            return True
+        except (OSError, GLib.Error, ValueError) as exc:
+            self.report("Could not apply wallpaper: " + str(exc))
+            return False
 
     def read_value(self, args):
         try:
@@ -340,7 +359,7 @@ class Shell(Gtk.Application):
             subprocess.run(args, capture_output=True, check=True, timeout=3)
             return True
         except (OSError, subprocess.SubprocessError):
-            self.report("Could not apply this setting. Open its full settings below.")
+            self.report("Could not apply this setting. Please try again.")
             return False
 
     def set_volume(self, control):
