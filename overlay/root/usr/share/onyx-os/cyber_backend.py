@@ -94,6 +94,9 @@ def main():
                 subprocess.run(['fastfetch'], check=False)
                 os.environ['PS1'] = '\\[\\e[36m\\]ONYX CYBER\\[\\e[0m\\] \\w $ '
             run(command)
+            if args.action != 'terminal' and sys.stdin.isatty():
+                print('\nYou can enter another command here. Type exit to finish.', flush=True)
+                run(['bash', '--noprofile', '--norc'])
         elif args.action == 'kali-stop':
             run(['podman', 'stop', CONTAINER])
         else:
