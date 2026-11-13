@@ -29,13 +29,14 @@ jobs:
           docker system prune -af || true
           df -h /
       - name: Check source files
-        run: bash build-onyx-iso.sh --check
+        run: bash build-onyx-iso.sh --check && python3 tools/test-cyber-backend.py
       - name: Exercise ONYX Home, application search and Settings
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends gir1.2-gtk-3.0 python3-gi xvfb xauth dbus-daemon librsvg2-bin python3-pil
           bash tools/render-shell-icons.sh
           xvfb-run -a dbus-run-session -- /usr/bin/python3 tools/check-onyx-shell.py previews
+          xvfb-run -a dbus-run-session -- /usr/bin/python3 tools/check-cyber-ui.py previews
       - name: Save native desktop previews
         uses: actions/upload-artifact@v4
         with:
@@ -43,6 +44,24 @@ jobs:
           path: previews/*.png
           retention-days: 7
         continue-on-error: true
+      - name: Verify optional Kali workspace
+        timeout-minutes: 15
+        run: |
+          sudo apt-get install -y podman uidmap fuse-overlayfs
+          python3 - <<'PYTEST'
+          import sys
+          sys.path.insert(0, 'overlay/root/usr/share/onyx-os')
+          import cyber_backend as b
+          b.prepare_kali()
+          b.run(['podman', 'start', b.CONTAINER])
+          b.run(['podman', 'exec', b.CONTAINER, 'sh', '-c', 'grep -q kali /etc/os-release && test -d /workspace'])
+          b.run(['podman', 'exec', b.CONTAINER, 'apt-get', 'update'])
+          for _, package in b.PACKS.values():
+              b.run(['podman', 'exec', b.CONTAINER, 'apt-cache', 'show', package])
+          b.run(['podman', 'stop', b.CONTAINER])
+          b.run(['podman', 'rm', b.CONTAINER])
+          print('Official Kali rootless workspace and optional package metadata verified.')
+          PYTEST
       - name: Build Fedora KDE image
         shell: bash
         run: |
@@ -57,17 +76,17 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test -s output/ONYX-OS-0.4-Alpha2-x86_64.iso
-          test -s output/ONYX-OS-0.4-Alpha2-x86_64.iso.sha256
-          (cd output && sha256sum --check ONYX-OS-0.4-Alpha2-x86_64.iso.sha256)
-          file output/ONYX-OS-0.4-Alpha2-x86_64.iso
-          ls -lh output/ONYX-OS-0.4-Alpha2-x86_64.iso
+          test -s output/ONYX-OS-0.4-Alpha3-x86_64.iso
+          test -s output/ONYX-OS-0.4-Alpha3-x86_64.iso.sha256
+          (cd output && sha256sum --check ONYX-OS-0.4-Alpha3-x86_64.iso.sha256)
+          file output/ONYX-OS-0.4-Alpha3-x86_64.iso
+          ls -lh output/ONYX-OS-0.4-Alpha3-x86_64.iso
           echo "NOTE: ISO signature and checksum are valid; live desktop boot still needs testing."
       - name: Boot the release in a diskless UEFI VM
         timeout-minutes: 25
         run: |
           sudo apt-get install -y --no-install-recommends qemu-system-x86 ovmf tesseract-ocr python3-pil python3-opencv
-          sudo /usr/bin/python3 tools/test-live-desktop.py output/ONYX-OS-0.4-Alpha2-x86_64.iso
+          sudo /usr/bin/python3 tools/test-live-desktop.py output/ONYX-OS-0.4-Alpha3-x86_64.iso
       - name: Save live session screenshots
         if: always()
         uses: actions/upload-artifact@v4
@@ -87,7 +106,7 @@ jobs:
           from pathlib import Path
           from PIL import Image
           folder = Path("vm-test")
-          names = ["home.png", "settings.png", "wallpaper.png", "fastfetch.png", "file-manager.png", "dock-idle.png", "dock-hover.png"]
+          names = ["home.png", "settings.png", "cyber.png", "wallpaper.png", "fastfetch.png", "file-manager.png", "dock-idle.png", "dock-hover.png"]
           paths = [folder / name for name in names]
           paths += sorted(folder.glob("boot-*.png"))[-3:]
           for path in paths:
@@ -111,8 +130,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -Eeuo pipefail
-          TAG="v0.4.0-alpha.2"
-          ISO="output/ONYX-OS-0.4-Alpha2-x86_64.iso"
+          TAG="v0.4.0-alpha.3"
+          ISO="output/ONYX-OS-0.4-Alpha3-x86_64.iso"
           SHA="$ISO.sha256"
           # The ISO is created as root inside the Fedora Docker container.
           # Make the output directory writable by the GitHub runner so
@@ -124,11 +143,11 @@ jobs:
           if ! gh release view "$TAG" >/dev/null 2>&1; then
             gh release create "$TAG" \
               --target "$GITHUB_SHA" \
-              --title "ONYX OS 0.4 Alpha 2 — Glass Desktop" \
+              --title "ONYX OS 0.4 Alpha 3 — Cyber Mode" \
               --notes "Live USB alpha. Validated in a diskless UEFI virtual machine." \
               --prerelease
           fi
-          gh release upload "$TAG" "$SHA" vm-test/desktop.png vm-test/home.png vm-test/settings.png vm-test/wallpaper.png vm-test/fastfetch.png --clobber
+          gh release upload "$TAG" "$SHA" vm-test/desktop.png vm-test/home.png vm-test/settings.png vm-test/wallpaper.png vm-test/fastfetch.png vm-test/cyber.png --clobber
           SIZE=$(stat -c %s "$ISO")
           SINGLE_LIMIT=$((1800 * 1024 * 1024))
           if (( SIZE < SINGLE_LIMIT )); then
@@ -143,7 +162,7 @@ jobs:
             PART_SIZE_MIB=900
             partnum=0
             while (( partnum * PART_SIZE_MIB * 1024 * 1024 < SIZE )); do
-              printf -v PART '%s/ONYX-OS-0.4-Alpha2-x86_64.iso.part%02d' "$PART_DIR" "$partnum"
+              printf -v PART '%s/ONYX-OS-0.4-Alpha3-x86_64.iso.part%02d' "$PART_DIR" "$partnum"
               dd if="$ISO" of="$PART" bs=1M skip="$((partnum * PART_SIZE_MIB))" count="$PART_SIZE_MIB" status=none
               test -s "$PART"
               gh release upload "$TAG" "$PART" --clobber

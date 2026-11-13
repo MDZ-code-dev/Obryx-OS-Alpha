@@ -115,7 +115,7 @@ class Shell(Gtk.Application):
         self.built_pages = set()
         for key, title in (("home", "Home"), ("apps", "Applications"), ("settings", "Settings")):
             panel = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
-            panel.pack_start(label("ONYX OS 0.4 · ALPHA 2", "wordmark"), False, False, 0)
+            panel.pack_start(label("ONYX OS 0.4 · ALPHA 3", "wordmark"), False, False, 0)
             heading = Gtk.EventBox()
             heading.add(label(title, "heading"))
             heading.connect("button-press-event", self.move_window)
@@ -207,6 +207,8 @@ class Shell(Gtk.Application):
         links.add(button(label("Search apps", "row-title"), lambda: self.navigate("apps"), "setting"))
         links.add(button(label("Settings", "row-title"), lambda: self.navigate("settings"), "setting"))
         panel.pack_start(links, False, False, 0)
+        panel.pack_start(button(label("Cyber Mode", "row-title"),
+                                lambda: self.favorite("onyx-cyber.desktop"), "setting"), False, False, 0)
 
     def build_apps(self, panel):
         self.search = Gtk.SearchEntry(placeholder_text="Search installed applications")

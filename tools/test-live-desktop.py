@@ -233,6 +233,21 @@ try:
         raise RuntimeError('Fastfetch did not show ONYX system statistics')
     keys('alt-f4')
     time.sleep(1)
+    screen("desktop")
+    click_home()
+    if not wait_for("home", r"Cyber Mode", 20):
+        raise RuntimeError("Home does not expose Cyber Mode")
+    click_word("Cyber")
+    if not wait_for("cyber", r"(?s)Cyber Mode.*(?:Network interfaces.*Nmap|Wireshark)", 30):
+        raise RuntimeError("Cyber Mode dashboard did not launch")
+    click_word("interfaces")
+    if not wait_for("cyber-network", r"lo.*UNKNOWN|127[.]0[.]0[.]1", 25):
+        raise RuntimeError("Cyber Mode did not run local interface inspection")
+    keys("alt-f4")
+    time.sleep(1)
+    screen("cyber")
+    keys("alt-f4")
+    time.sleep(1)
     # Measure the dock, away from its clock, before and after hovering an app.
     command("input-send-event", events=[
         {"type": "abs", "data": {"axis": "x", "value": 1000}},

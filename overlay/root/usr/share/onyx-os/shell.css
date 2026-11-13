@@ -26,3 +26,6 @@ button:focus, button:hover { border-color: #b9e6f1; }
 scrolledwindow, scrolledwindow > viewport { border: none; box-shadow: none; }
 
 button { transition: background-color 180ms ease, border-color 180ms ease; }
+
+.cyber-body { padding: 24px 30px; }
+.cyber-body .heading { color: #b8f5e2; }

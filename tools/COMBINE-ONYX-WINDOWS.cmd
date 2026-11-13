@@ -1,7 +1,7 @@
 @echo off
 setlocal
 cd /d "%~dp0"
-set "ISO=ONYX-OS-0.4-Alpha2-x86_64.iso"
+set "ISO=ONYX-OS-0.4-Alpha3-x86_64.iso"
 if not exist "%ISO%.sha256" goto missing
 if not exist "%ISO%.part00" goto missing
 if exist "%ISO%" goto verify

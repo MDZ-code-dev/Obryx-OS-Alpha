@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=ONYX Cyber Mode
+Comment=Security tools, learning resources and optional Kali workspace
+Exec=/usr/bin/python3 /usr/share/onyx-os/cyber.py
+Icon=security-high
+Terminal=false
+Categories=System;Utility;
+Keywords=cyber;security;kali;network;forensics;
+StartupWMClass=org.onyx.Desktop.Cyber
