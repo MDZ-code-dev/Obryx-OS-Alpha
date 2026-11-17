@@ -1,0 +1,69 @@
+name: Download complete ONYX ISO
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["Build ONYX OS Live ISO"]
+    branches: [onyx-0.4-desktop]
+    types: [completed]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: onyx-complete-alpha3
+  cancel-in-progress: false
+
+jobs:
+  package:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Download and verify complete release image
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          mkdir parts complete
+          ISO=ONYX-OS-0.4-Alpha3-x86_64.iso
+          TAG=v0.4.0-alpha.3
+          gh release view "$TAG" --json assets > release.json
+          if jq -e --arg name "$ISO" '.assets[] | select(.name == $name)' release.json >/dev/null; then
+            gh release download "$TAG" --pattern "$ISO" --dir complete
+          else
+            gh release download "$TAG" --pattern "$ISO.part*" --dir parts
+            python3 - <<'PY'
+          from pathlib import Path
+          import shutil
+          name = 'ONYX-OS-0.4-Alpha3-x86_64.iso'
+          parts = sorted(Path('parts').glob(name + '.part*'))
+          if not parts or [p.name for p in parts] != [f'{name}.part{i:02d}' for i in range(len(parts))]:
+              raise SystemExit('Missing or unexpected ISO parts')
+          with (Path('complete') / name).open('wb') as dest:
+              for part in parts:
+                  with part.open('rb') as source:
+                      shutil.copyfileobj(source, dest)
+          PY
+          fi
+          gh release download "$TAG" --pattern "$ISO.sha256" --dir complete
+          (cd complete && sha256sum -c "$ISO.sha256")
+          rm -rf parts
+      - name: Upload single download
+        id: iso
+        uses: actions/upload-artifact@v4
+        with:
+          name: ONYX-OS-0.4-Alpha3-complete-ISO
+          path: complete/*
+          compression-level: 0
+          retention-days: 7
+          if-no-files-found: error
+      - name: Show download instructions
+        env:
+          ARTIFACT_URL: ${{ steps.iso.outputs.artifact-url }}
+        run: |
+          echo "Download: $ARTIFACT_URL" >> "$GITHUB_STEP_SUMMARY"
+          echo "Extract the ZIP once, then select ONYX-OS-0.4-Alpha3-x86_64.iso in Rufus. No combine script is needed." >> "$GITHUB_STEP_SUMMARY"
+          echo "Download expires after 7 days. Run this workflow again to regenerate it from the verified release." >> "$GITHUB_STEP_SUMMARY"
