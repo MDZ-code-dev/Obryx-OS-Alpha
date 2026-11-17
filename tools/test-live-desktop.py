@@ -241,7 +241,7 @@ try:
     if not wait_for("cyber", r"(?s)Cyber Mode.*(?:Network interfaces.*Nmap|Wireshark)", 30):
         raise RuntimeError("Cyber Mode dashboard did not launch")
     click_word("interfaces")
-    if not wait_for("cyber-network", r"lo.*UNKNOWN|127[.]0[.]0[.]1", 25):
+    if not wait_for("cyber-network", r"\blo\s+UNKNOWN\b", 25):
         raise RuntimeError("Cyber Mode did not run local interface inspection")
     keys("alt-f4")
     time.sleep(1)
