@@ -33,10 +33,15 @@ jobs:
       - name: Exercise ONYX Home, application search and Settings
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends gir1.2-gtk-3.0 python3-gi xvfb xauth dbus-daemon librsvg2-bin python3-pil
+          sudo apt-get install -y --no-install-recommends gir1.2-gtk-3.0 python3-gi xvfb xauth dbus-daemon librsvg2-bin python3-pil cmake ninja-build g++
           bash tools/render-shell-icons.sh
           xvfb-run -a dbus-run-session -- /usr/bin/python3 tools/check-onyx-shell.py previews
           xvfb-run -a dbus-run-session -- /usr/bin/python3 tools/check-cyber-ui.py previews
+          xvfb-run -a dbus-run-session -- /usr/bin/python3 tools/check-developer-ui.py previews
+          cmake -S overlay/root/usr/share/onyx-os/templates/cpp -B /tmp/onyx-cpp -G Ninja
+          cmake --build /tmp/onyx-cpp
+          /tmp/onyx-cpp/hello
+          python3 overlay/root/usr/share/onyx-os/templates/python/main.py
       - name: Save native desktop previews
         uses: actions/upload-artifact@v4
         with:

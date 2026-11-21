@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=ONYX Developer
+Comment=Code, build and connect development boards
+Exec=/usr/bin/python3 /usr/share/onyx-os/developer.py
+Icon=applications-development
+Terminal=false
+Categories=Development;IDE;
+StartupWMClass=org.onyx.Desktop.Developer

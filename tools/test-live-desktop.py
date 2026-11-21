@@ -204,6 +204,18 @@ try:
         raise RuntimeError("Clicking the ONYX dock crystal did not open Home")
     if not wait_for("home", r"ONYX.*0[.,]4", 10):
         raise RuntimeError("Home does not visibly identify ONYX 0.4")
+    keys("alt-f4")
+    time.sleep(1)
+    keys("meta_l")
+    if not wait_for("home", r"Pinned.*|All apps", 30):
+        raise RuntimeError("Windows key did not open ONYX Home")
+    keys("meta_l")
+    time.sleep(1)
+    if re.search(r"Pinned|All apps", screen("home-closed")):
+        raise RuntimeError("Windows key did not close ONYX Home")
+    keys("meta_l")
+    if not wait_for("home", r"Pinned|All apps", 30):
+        raise RuntimeError("Windows key did not reopen ONYX Home")
     keys("ctrl-f")
     if not wait_for("apps", r"Applications|Search installed applications", 30):
         raise RuntimeError("Application search did not open from Home")

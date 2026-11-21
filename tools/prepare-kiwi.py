@@ -5,7 +5,7 @@ import re
 import sys
 import xml.etree.ElementTree as ET
 
-PACKAGES = ("nmap", "wireshark", "bind-utils", "openssl", "podman", "fastfetch", "dbus-tools", "plasma-discover", "flatpak", "anaconda-live", "gtk3", "python3-gobject", "plasma5support", "plymouth-theme-spinner")
+PACKAGES = ("git", "kate", "gcc", "gcc-c++", "make", "cmake", "ninja-build", "gdb", "python3-pip", "python3-virtualenv", "python3-pyserial", "ccache", "dfu-util", "libusb1", "flex", "bison", "gperf", "nmap", "wireshark", "bind-utils", "openssl", "podman", "fastfetch", "dbus-tools", "plasma-discover", "flatpak", "anaconda-live", "gtk3", "python3-gobject", "plasma5support", "plymouth-theme-spinner")
 
 
 def customize_boot_menu(template: Path):

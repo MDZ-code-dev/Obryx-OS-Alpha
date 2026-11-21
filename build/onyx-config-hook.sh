@@ -186,3 +186,10 @@ for binary in nmap wireshark dig openssl podman; do
   command -v "$binary" >/dev/null || exit 51
 done
 test -s /usr/share/onyx-os/cyber.py || exit 52
+
+# Development tools and modifier-only launcher must exist in the built image.
+for tool in git kate gcc g++ cmake ninja gdb; do
+  command -v "$tool" >/dev/null || exit 1
+done
+python3 -c 'import serial'
+

@@ -1,0 +1,7 @@
+# Access only for the active local desktop session, not world-writable devices.
+# Native Espressif USB, Silicon Labs CP210x, WCH and FTDI serial adapters.
+SUBSYSTEM=="tty", ATTRS{idVendor}=="303a", TAG+="uaccess"
+SUBSYSTEM=="tty", ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea60", TAG+="uaccess"
+SUBSYSTEM=="tty", ATTRS{idVendor}=="1a86", ATTRS{idProduct}=="7523", TAG+="uaccess"
+SUBSYSTEM=="tty", ATTRS{idVendor}=="1a86", ATTRS{idProduct}=="55d4", TAG+="uaccess"
+SUBSYSTEM=="tty", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", TAG+="uaccess"

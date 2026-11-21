@@ -58,13 +58,17 @@ def scroll(content):
 
 
 class Shell(Gtk.Application):
-    def __init__(self, page):
+    def __init__(self, page, query=""):
         super().__init__(application_id="org.onyx.Desktop." + page.capitalize())
         self.page = page
+        self.initial_query = query
         self.window = None
 
     def do_activate(self):
         if self.window:
+            if self.page == "home" and self.window.is_active():
+                self.window.close()
+                return
             self.window.present()
             return
         self.window = Gtk.ApplicationWindow(application=self)
@@ -77,7 +81,7 @@ class Shell(Gtk.Application):
         css.load_from_path(str(ROOT / "shell.css"))
         Gtk.StyleContext.add_provider_for_screen(screen, css, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
         monitor = screen.get_monitor_workarea(screen.get_primary_monitor())
-        self.window.set_default_size(min(960, monitor.width - 48), min(650, monitor.height - 100))
+        self.window.set_default_size(min(680 if self.page == "home" else 960, monitor.width - 48), min(610 if self.page == "home" else 650, monitor.height - 100))
         self.window.set_resizable(True)
         self.window.set_position(Gtk.WindowPosition.CENTER)
         self.window.set_decorated(False)
@@ -86,8 +90,13 @@ class Shell(Gtk.Application):
         self.window.connect("destroy", lambda *_: setattr(self, "window", None))
         frame = styled(Gtk.Box(), "onyx-frame")
         self.window.add(frame)
+        if self.page == "home":
+            styled(frame, "start-frame")
         rail = styled(Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8), "rail")
         frame.pack_start(rail, False, False, 0)
+        if self.page == "home":
+            rail.set_no_show_all(True)
+            rail.hide()
         brand = icon("crystal", 39)
         rail.pack_start(brand, False, False, 18)
         self.nav = {}
@@ -119,10 +128,13 @@ class Shell(Gtk.Application):
             heading = Gtk.EventBox()
             heading.add(label(title, "heading"))
             heading.connect("button-press-event", self.move_window)
-            panel.pack_start(heading, False, False, 0)
+            if key != "home":
+                panel.pack_start(heading, False, False, 0)
             self.stack.add_named(panel, key)
         self.window.show_all()
         self.show_page(self.page)
+        if self.page == "apps" and self.initial_query:
+            self.search.set_text(self.initial_query)
         self.window.present()
 
     def navigate(self, key):
@@ -191,24 +203,55 @@ class Shell(Gtk.Application):
         self.launch(info)
 
     def build_home(self, panel):
-        panel.pack_start(label("Quick launch", "section"), False, False, 0)
-        cards = Gtk.Grid(column_spacing=12, row_spacing=12, column_homogeneous=True)
-        for i, (name, desktop, glyph, color) in enumerate(FAVORITES):
-            content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=24)
-            art = icon(glyph, 38)
-            art.set_halign(Gtk.Align.START)
-            content.add(art)
-            content.add(label(name, "card-title"))
-            tile = button(content, lambda d=desktop: self.favorite(d), "card")
-            styled(tile, color)
-            cards.attach(tile, i % 2, i // 2, 1, 1)
-        panel.pack_start(scroll(cards), True, True, 0)
-        links = Gtk.Box(spacing=12, homogeneous=True)
-        links.add(button(label("Search apps", "row-title"), lambda: self.navigate("apps"), "setting"))
-        links.add(button(label("Settings", "row-title"), lambda: self.navigate("settings"), "setting"))
-        panel.pack_start(links, False, False, 0)
-        panel.pack_start(button(label("Cyber Mode", "row-title"),
-                                lambda: self.favorite("onyx-cyber.desktop"), "setting"), False, False, 0)
+        search = Gtk.SearchEntry(placeholder_text="Search apps — press Enter")
+        search.connect("activate", lambda entry: self.home_search(entry.get_text()))
+        panel.pack_start(search, False, False, 0)
+        heading = Gtk.Box(spacing=12)
+        heading.pack_start(label("Pinned", "row-title"), True, True, 0)
+        heading.pack_end(button(label("All apps  ›", "section"), lambda: self.navigate("apps"), "setting"), False, False, 0)
+        panel.pack_start(heading, False, False, 0)
+        grid = Gtk.Grid(column_spacing=8, row_spacing=8, column_homogeneous=True)
+        pins = list(FAVORITES) + [
+            ("Settings", "onyx-settings.desktop", "settings-2", ""),
+            ("Cyber Mode", "onyx-cyber.desktop", "wifi", ""),
+            ("Code", "org.kde.kate.desktop", "layout-grid", ""),
+            ("Developer", "onyx-developer.desktop", "terminal", ""),
+        ]
+        for i, (name, desktop, glyph, _) in enumerate(pins):
+            content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+            content.pack_start(icon(glyph, 32), False, False, 0)
+            caption = label(name, "section")
+            caption.set_xalign(0.5)
+            content.pack_start(caption, False, False, 0)
+            grid.attach(button(content, lambda d=desktop: self.favorite(d), "start-pin"), i % 4, i // 4, 1, 1)
+        panel.pack_start(scroll(grid), True, True, 0)
+        panel.pack_start(label("Projects", "row-title"), False, False, 0)
+        panel.pack_start(button(label("Open your Projects folder", "section"), self.open_projects, "setting"), False, False, 0)
+        footer = styled(Gtk.Box(spacing=12), "start-footer")
+        footer.pack_start(label(GLib.get_real_name() or GLib.get_user_name(), "section"), True, True, 0)
+        footer.pack_end(button(label("Power", "section"), self.power_menu, "setting"), False, False, 0)
+        footer.pack_end(button(label("Lock", "section"), self.lock_screen, "setting"), False, False, 0)
+        panel.pack_end(footer, False, False, 0)
+
+    def home_search(self, query):
+        Gio.Subprocess.new([sys.executable, str(ROOT / "shell.py"), "apps", "--query", query], Gio.SubprocessFlags.NONE)
+        self.window.close()
+
+    def open_projects(self):
+        try:
+            folder = Path.home() / "Projects"
+            folder.mkdir(exist_ok=True)
+            Gio.AppInfo.launch_default_for_uri(folder.as_uri(), None)
+        except (OSError, GLib.Error) as exc:
+            self.report(str(exc))
+
+    def power_menu(self):
+        self.apply_value(["dbus-send", "--session", "--print-reply", "--dest=org.kde.LogoutPrompt",
+                          "/LogoutPrompt", "org.kde.LogoutPrompt.promptAll"])
+
+    def lock_screen(self):
+        self.apply_value(["dbus-send", "--session", "--print-reply", "--dest=org.freedesktop.ScreenSaver",
+                          "/ScreenSaver", "org.freedesktop.ScreenSaver.Lock"])
 
     def build_apps(self, panel):
         self.search = Gtk.SearchEntry(placeholder_text="Search installed applications")
@@ -381,4 +424,5 @@ class Shell(Gtk.Application):
 
 if __name__ == "__main__":
     page = sys.argv[1] if len(sys.argv) > 1 and sys.argv[1] in ("home", "apps", "settings") else "home"
-    sys.exit(Shell(page).run(sys.argv[:1]))
+    query = sys.argv[3] if len(sys.argv) > 3 and sys.argv[2] == "--query" else ""
+    sys.exit(Shell(page, query).run(sys.argv[:1]))

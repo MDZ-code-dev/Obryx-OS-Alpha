@@ -57,6 +57,6 @@
     for (var k = 0; k < previous.length; ++k) {
         if (previous[k].screen === dock.screen) previous[k].remove();
     }
-    launcher.globalShortcut = "Alt+F1";
+    launcher.globalShortcut = "Meta";
     print("ONYX_LAYOUT_OK");
 }());
