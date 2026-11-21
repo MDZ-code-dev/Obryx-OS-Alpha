@@ -23,6 +23,7 @@ PlasmoidItem {
     readonly property int  hoverLift:         Plasmoid.configuration.hoverLift
 
     property int hoveredIndex: -1
+    property real hoverPosition: -1
 
     Timer {
         id: hoverClearDelay
@@ -166,6 +167,7 @@ PlasmoidItem {
                     maxScale:      root.hoverScale
                     hoverLift:     root.hoverLift
                     hoveredIndex:  root.hoveredIndex
+                    hoverPosition: root.hoverPosition
                     launcherUrl:   model.LauncherUrl ?? ""
 
                     decoration:    model.decoration
@@ -179,8 +181,13 @@ PlasmoidItem {
                     // Dim the slot while this icon is being dragged out of it
                     opacity: root.dragActive && root.dragFromIndex === index ? 0.2 : 1.0
 
-                    onHoverEntered:  { hoverClearDelay.stop(); root.hoveredIndex = index }
+                    onHoverEntered:  { hoverClearDelay.stop(); root.hoveredIndex = index; root.hoverPosition = index }
                     onHoverExited:   hoverClearDelay.restart()
+                    onHoverMoved: function(localX) {
+                        hoverClearDelay.stop()
+                        root.hoveredIndex = index
+                        root.hoverPosition = index + (localX - width / 2) / (root.iconSize + root.iconSpacing)
+                    }
 
                     onRemoveRequested: function(url) { root.removeLauncher(url) }
 

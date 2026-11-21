@@ -24,18 +24,18 @@ ln -sfn /usr/share/wallpapers/ONYX /usr/share/wallpapers/Default
 if [ -f /usr/lib/os-release ]; then
   sed -i \
     -e 's/^NAME=.*/NAME="ONYX OS"/' \
-    -e 's/^PRETTY_NAME=.*/PRETTY_NAME="ONYX OS 0.4 Alpha 3"/' \
+    -e 's/^PRETTY_NAME=.*/PRETTY_NAME="ONYX OS 0.4 Alpha 4"/' \
     /usr/lib/os-release
 elif [ -f /etc/os-release ]; then
   sed -i \
     -e 's/^NAME=.*/NAME="ONYX OS"/' \
-    -e 's/^PRETTY_NAME=.*/PRETTY_NAME="ONYX OS 0.4 Alpha 3"/' \
+    -e 's/^PRETTY_NAME=.*/PRETTY_NAME="ONYX OS 0.4 Alpha 4"/' \
     /etc/os-release
 fi
 test -e /usr/share/wallpapers/Default/contents/images/1920x1080.png || {
   echo "FATAL: ONYX system wallpaper was not set" >&2; exit 39;
 }
-grep -q 'ONYX OS 0.4 Alpha 3' /usr/lib/os-release /etc/os-release 2>/dev/null || {
+grep -q 'ONYX OS 0.4 Alpha 4' /usr/lib/os-release /etc/os-release 2>/dev/null || {
   echo "FATAL: ONYX OS branding not present in os-release" >&2; exit 40;
 }
 echo "ONYX-OS: default system wallpaper, dark UI configuration and OS name verified."
@@ -111,7 +111,7 @@ for entry in /etc/xdg/autostart/*welcome*.desktop /usr/share/applications/org.kd
   printf '[Desktop Entry]\nType=Application\nHidden=true\n' > "/etc/skel/.config/autostart/$(basename "$entry")"
 done
 sed -i '/^LOGO=/d; /^VARIANT=/d; /^VERSION=/d' /usr/lib/os-release
-printf 'LOGO=onyx-crystal\nVARIANT="ONYX Desktop"\nVERSION="0.4 Alpha 3"\n' >> /usr/lib/os-release
+printf 'LOGO=onyx-crystal\nVARIANT="ONYX Desktop"\nVERSION="0.4 Alpha 4"\n' >> /usr/lib/os-release
 
 # Fedora's live session can inject its own per-user welcome preferences.
 # Apply the live image policy before the KDED module starts.

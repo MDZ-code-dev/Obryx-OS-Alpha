@@ -47,3 +47,12 @@ InactiveSecondOutlineAlpha=20
 Exclusions=org.onyx.Desktop.Home,org.onyx.Desktop.Settings,org.onyx.Desktop.Apps
 DisableRoundMaximize=true
 DisableRoundFullScreen=true
+
+# Native equivalents of the supplied genie and glass-menu references.
+[Effect-magiclamp]
+AnimationDuration=420
+
+[Effect-scale]
+Duration=260
+InScale=0.94
+OutScale=0.97

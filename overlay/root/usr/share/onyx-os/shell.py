@@ -107,7 +107,7 @@ class Shell(Gtk.Application):
         body = styled(Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12), "body")
         frame.pack_start(body, True, True, 0)
         self.stack = Gtk.Stack()
-        self.stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE)
+        self.stack.set_transition_type(Gtk.StackTransitionType.SLIDE_LEFT_RIGHT)
         self.stack.set_transition_duration(240)
         body.pack_start(self.stack, True, True, 0)
         self.status = label("", "error")
@@ -115,7 +115,7 @@ class Shell(Gtk.Application):
         self.built_pages = set()
         for key, title in (("home", "Home"), ("apps", "Applications"), ("settings", "Settings")):
             panel = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
-            panel.pack_start(label("ONYX OS 0.4 · ALPHA 3", "wordmark"), False, False, 0)
+            panel.pack_start(label("ONYX OS 0.4 · ALPHA 4", "wordmark"), False, False, 0)
             heading = Gtk.EventBox()
             heading.add(label(title, "heading"))
             heading.connect("button-press-event", self.move_window)

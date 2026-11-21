@@ -31,7 +31,7 @@ class Cyber(Gtk.Application):
         frame = styled(Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16), 'onyx-frame')
         styled(frame, 'cyber-body')
         self.window.add(frame)
-        frame.add(label('ONYX OS 0.4 · ALPHA 3', 'wordmark'))
+        frame.add(label('ONYX OS 0.4 · ALPHA 4', 'wordmark'))
         frame.add(label('Cyber Mode', 'heading'))
         frame.add(label('Explore networks. Inspect systems. Build your skills.', 'section'))
         self.tabs = Gtk.Stack()

@@ -11,6 +11,7 @@ Item {
     property real   maxScale:      1.4
     property int    hoverLift:     0
     property int    hoveredIndex:  -1
+    property real   hoverPosition: -1
     property string launcherUrl:   ""
 
     property var    decoration:    null
@@ -23,6 +24,7 @@ Item {
 
     signal hoverEntered()
     signal hoverExited()
+    signal hoverMoved(real localX)
     signal removeRequested(string url)
     signal reorderStarted()
     signal reorderMoved(real mouseLocalX)
@@ -34,7 +36,7 @@ Item {
     // ── Magnification ─────────────────────────────────────────────────────────
     readonly property real magnification: {
         if (hoveredIndex < 0) return 0
-        const d = Math.abs(taskIndex - hoveredIndex)
+        const d = Math.abs(taskIndex - hoverPosition)
         if (d >= 2.5) return 0
         return 0.5 * (1.0 + Math.cos(Math.PI * d / 2.5))
     }
@@ -42,7 +44,7 @@ Item {
     readonly property real iconTarget: baseSize * (1.0 + (maxScale - 1.0) * magnification)
     property real iconDrawSize: baseSize
     onIconTargetChanged: iconDrawSize = iconTarget
-    Behavior on iconDrawSize { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
+    Behavior on iconDrawSize { NumberAnimation { duration: Kirigami.Units.longDuration; easing.type: Easing.OutCubic } }
 
     // ── Drag state: 0=idle, 1=horiz(reorder), 2=vert(remove) ─────────────────
     property int  dragMode:  0
@@ -50,7 +52,7 @@ Item {
     property real pressedY:  0
 
     opacity: dragMode === 2 ? 0.4 : 1.0
-    Behavior on opacity { NumberAnimation { duration: 120 } }
+    Behavior on opacity { NumberAnimation { duration: Kirigami.Units.shortDuration } }
 
     // ── App icon ──────────────────────────────────────────────────────────────
     Kirigami.Icon {
@@ -58,16 +60,21 @@ Item {
         // by hoverLift px, neighbours rise less, far icons not at all.
         anchors {
             bottom:           parent.bottom
-            bottomMargin:     3 + Math.round(taskIcon.hoverLift * taskIcon.magnification)
+            bottomMargin:     3 + taskIcon.hoverLift * taskIcon.magnification
             horizontalCenter: parent.horizontalCenter
         }
-        Behavior on anchors.bottomMargin { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
+        Behavior on anchors.bottomMargin { NumberAnimation { duration: Kirigami.Units.longDuration; easing.type: Easing.OutCubic } }
         width:  taskIcon.iconDrawSize
         height: taskIcon.iconDrawSize
         source: taskIcon.decoration
+        scale: mouseArea.pressed && taskIcon.dragMode === 0 ? 0.92 : 1.0
+        Behavior on scale { NumberAnimation {
+            duration: Kirigami.Units.shortDuration
+            easing.type: Easing.OutCubic
+        } }
         smooth: true; antialiasing: true
         opacity: taskIcon.isMinimized ? 0.55 : 1.0
-        Behavior on opacity { NumberAnimation { duration: 120 } }
+        Behavior on opacity { NumberAnimation { duration: Kirigami.Units.shortDuration } }
     }
 
     // Trash icon during remove-drag
@@ -85,7 +92,7 @@ Item {
         width: 4; height: 4; radius: 2
         visible: taskIcon.isWindow && !taskIcon.isLauncher
         color:   taskIcon.isActive ? "#ffffff" : "#60626e"
-        Behavior on color { ColorAnimation { duration: 120 } }
+        Behavior on color { ColorAnimation { duration: Kirigami.Units.shortDuration } }
     }
 
     QQC2.ToolTip.visible: mouseArea.containsMouse && taskIcon.dragMode === 0 && taskIcon.appName !== ""
@@ -109,6 +116,7 @@ Item {
         }
 
         onPositionChanged: function(mouse) {
+            taskIcon.hoverMoved(mouse.x)
             if (!pressed) return
             const dx = mouse.x - taskIcon.pressedX
             const dy = taskIcon.pressedY - mouse.y  // positive = upward

@@ -56,7 +56,7 @@ for dir in "$OUT" "$ROOT/output-build" "$WORK/upstream/output-build"; do
 done
 mapfile -t ISOS < <(find "${IMAGE_DIRS[@]}" -maxdepth 2 -type f -name '*.iso' -print | sort -u)
 [[ "${#ISOS[@]}" -eq 1 ]] || { echo "Expected one ISO, found ${#ISOS[@]}"; exit 1; }
-TARGET="$OUT/ONYX-OS-0.4-Alpha3-x86_64.iso"
+TARGET="$OUT/ONYX-OS-0.4-Alpha4-x86_64.iso"
 [[ "${ISOS[0]}" == "$TARGET" ]] || mv -- "${ISOS[0]}" "$TARGET"
 [[ -s "$TARGET" ]] || { echo "Empty ISO"; exit 1; }
 # Inspect the authored image before producing a downloadable release.
