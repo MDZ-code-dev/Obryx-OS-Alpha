@@ -23,7 +23,7 @@ Rectangle {
         }
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
-            text: "ONYX OS 0.4"
+            text: "Obryx OS 0.4"
             color: "#c7d7e6"
             font.pixelSize: 16
             font.letterSpacing: 4

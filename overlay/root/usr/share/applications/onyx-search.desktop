@@ -1,6 +1,6 @@
 [Desktop Entry]
 Type=Application
-Name=ONYX Search
+Name=Obryx Search
 Comment=Find installed applications
 Exec=/usr/bin/python3 /usr/share/onyx-os/shell.py apps
 Icon=system-search

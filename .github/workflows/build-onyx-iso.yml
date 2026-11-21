@@ -1,4 +1,4 @@
-name: Build ONYX OS Live ISO
+name: Build Obryx OS Live ISO
 
 on:
   workflow_dispatch:
@@ -30,7 +30,7 @@ jobs:
           df -h /
       - name: Check source files
         run: bash build-onyx-iso.sh --check && python3 tools/test-cyber-backend.py
-      - name: Exercise ONYX Home, application search and Settings
+      - name: Exercise Obryx Home, application search and Settings
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends gir1.2-gtk-3.0 python3-gi xvfb xauth dbus-daemon librsvg2-bin python3-pil cmake ninja-build g++
@@ -81,17 +81,17 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test -s output/ONYX-OS-0.4-Alpha4-x86_64.iso
-          test -s output/ONYX-OS-0.4-Alpha4-x86_64.iso.sha256
-          (cd output && sha256sum --check ONYX-OS-0.4-Alpha4-x86_64.iso.sha256)
-          file output/ONYX-OS-0.4-Alpha4-x86_64.iso
-          ls -lh output/ONYX-OS-0.4-Alpha4-x86_64.iso
+          test -s output/Obryx-OS-0.4-Alpha4-x86_64.iso
+          test -s output/Obryx-OS-0.4-Alpha4-x86_64.iso.sha256
+          (cd output && sha256sum --check Obryx-OS-0.4-Alpha4-x86_64.iso.sha256)
+          file output/Obryx-OS-0.4-Alpha4-x86_64.iso
+          ls -lh output/Obryx-OS-0.4-Alpha4-x86_64.iso
           echo "NOTE: ISO signature and checksum are valid; live desktop boot still needs testing."
       - name: Boot the release in a diskless UEFI VM
         timeout-minutes: 25
         run: |
           sudo apt-get install -y --no-install-recommends qemu-system-x86 ovmf tesseract-ocr python3-pil python3-opencv
-          sudo /usr/bin/python3 tools/test-live-desktop.py output/ONYX-OS-0.4-Alpha4-x86_64.iso
+          sudo /usr/bin/python3 tools/test-live-desktop.py output/Obryx-OS-0.4-Alpha4-x86_64.iso
       - name: Save live session screenshots
         if: always()
         uses: actions/upload-artifact@v4
@@ -136,7 +136,7 @@ jobs:
         run: |
           set -Eeuo pipefail
           TAG="v0.4.0-alpha.4"
-          ISO="output/ONYX-OS-0.4-Alpha4-x86_64.iso"
+          ISO="output/Obryx-OS-0.4-Alpha4-x86_64.iso"
           SHA="$ISO.sha256"
           # The ISO is created as root inside the Fedora Docker container.
           # Make the output directory writable by the GitHub runner so
@@ -148,7 +148,7 @@ jobs:
           if ! gh release view "$TAG" >/dev/null 2>&1; then
             gh release create "$TAG" \
               --target "$GITHUB_SHA" \
-              --title "ONYX OS 0.4 Alpha 4 — Smooth Motion and Cyber Mode" \
+              --title "Obryx OS 0.4 Alpha 4 — Smooth Motion and Cyber Mode" \
               --notes "Live USB alpha. Validated in a diskless UEFI virtual machine." \
               --prerelease
           fi
@@ -167,7 +167,7 @@ jobs:
             PART_SIZE_MIB=900
             partnum=0
             while (( partnum * PART_SIZE_MIB * 1024 * 1024 < SIZE )); do
-              printf -v PART '%s/ONYX-OS-0.4-Alpha4-x86_64.iso.part%02d' "$PART_DIR" "$partnum"
+              printf -v PART '%s/Obryx-OS-0.4-Alpha4-x86_64.iso.part%02d' "$PART_DIR" "$partnum"
               dd if="$ISO" of="$PART" bs=1M skip="$((partnum * PART_SIZE_MIB))" count="$PART_SIZE_MIB" status=none
               test -s "$PART"
               gh release upload "$TAG" "$PART" --clobber

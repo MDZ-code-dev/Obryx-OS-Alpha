@@ -1,6 +1,6 @@
 [Desktop Entry]
 Type=Application
-Name=ONYX Cyber Mode
+Name=Obryx Cyber Mode
 Comment=Security tools, learning resources and optional Kali workspace
 Exec=/usr/bin/python3 /usr/share/onyx-os/cyber.py
 Icon=security-high

@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-"""ONYX Home and Settings for a native Plasma session."""
+"""Obryx Home and Settings for a native Plasma session."""
 import hashlib
 import json
 import subprocess
@@ -72,7 +72,7 @@ class Shell(Gtk.Application):
             self.window.present()
             return
         self.window = Gtk.ApplicationWindow(application=self)
-        self.window.set_title("ONYX " + {"settings": "Settings", "apps": "Search", "home": "Home"}[self.page])
+        self.window.set_title("Obryx " + {"settings": "Settings", "apps": "Search", "home": "Home"}[self.page])
         screen = self.window.get_screen()
         visual = screen.get_rgba_visual()
         if visual:
@@ -124,7 +124,7 @@ class Shell(Gtk.Application):
         self.built_pages = set()
         for key, title in (("home", "Home"), ("apps", "Applications"), ("settings", "Settings")):
             panel = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
-            panel.pack_start(label("ONYX OS 0.4 · ALPHA 4", "wordmark"), False, False, 0)
+            panel.pack_start(label("Obryx OS 0.4 · ALPHA 4", "wordmark"), False, False, 0)
             heading = Gtk.EventBox()
             heading.add(label(title, "heading"))
             heading.connect("button-press-event", self.move_window)
@@ -172,7 +172,7 @@ class Shell(Gtk.Application):
             self.built_pages.add(key)
         self.stack.set_visible_child_name(key)
         self.status.hide()
-        self.window.set_title("ONYX " + {"home":"Home", "apps":"Applications", "settings":"Settings"}[key])
+        self.window.set_title("Obryx " + {"home":"Home", "apps":"Applications", "settings":"Settings"}[key])
         for name, item in self.nav.items():
             ctx = item.get_style_context()
             (ctx.add_class if name == key else ctx.remove_class)("selected")
@@ -215,7 +215,7 @@ class Shell(Gtk.Application):
             ("Settings", "onyx-settings.desktop", "settings-2", ""),
             ("Cyber Mode", "onyx-cyber.desktop", "wifi", ""),
             ("Code", "org.kde.kate.desktop", "layout-grid", ""),
-            ("Developer", "onyx-developer.desktop", "terminal", ""),
+            ("Forge", "onyx-developer.desktop", "terminal", ""),
         ]
         for i, (name, desktop, glyph, _) in enumerate(pins):
             content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)

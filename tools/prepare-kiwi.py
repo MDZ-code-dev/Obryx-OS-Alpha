@@ -15,9 +15,9 @@ def customize_boot_menu(template: Path):
     if len(matches) != 1:
         raise ValueError("Expected one Fedora live start entry in the x86 GRUB template")
     original = matches[0].group()
-    start = original.replace('Start ${title}', 'Start ONYX OS', 1)
-    start = start.replace("Start ONYX OS", "Start ONYX OS 0.4")
-    menu = menu.replace(original, start).replace("${title}", "ONYX OS 0.4")
+    start = original.replace('Start ${title}', 'Start Obryx OS', 1)
+    start = start.replace("Start Obryx OS", "Start Obryx OS 0.4")
+    menu = menu.replace(original, start).replace("${title}", "Obryx OS 0.4")
     menu, count = re.subn(r'(?m)^set default=.*$', 'set default="0"', menu)
     if count != 1:
         raise ValueError("Expected one GRUB default entry setting")

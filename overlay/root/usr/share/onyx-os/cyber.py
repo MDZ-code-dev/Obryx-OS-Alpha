@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-"""ONYX Cyber Mode: native tools, learning resources and optional Kali packs."""
+"""Obryx Cyber Mode: native tools, learning resources and optional Kali packs."""
 import sys
 import shutil
 from pathlib import Path
@@ -16,7 +16,7 @@ class Cyber(Gtk.Application):
         if self.window:
             self.window.present()
             return
-        self.window = Gtk.ApplicationWindow(application=self, title='ONYX Cyber Mode')
+        self.window = Gtk.ApplicationWindow(application=self, title='Obryx Cyber Mode')
         self.window.connect('destroy', lambda *_: setattr(self, 'window', None))
         screen = self.window.get_screen()
         visual = screen.get_rgba_visual()
@@ -31,7 +31,7 @@ class Cyber(Gtk.Application):
         frame = styled(Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16), 'onyx-frame')
         styled(frame, 'cyber-body')
         self.window.add(frame)
-        frame.add(label('ONYX OS 0.4 · ALPHA 4', 'wordmark'))
+        frame.add(label('Obryx OS 0.4 · ALPHA 4', 'wordmark'))
         frame.add(label('Cyber Mode', 'heading'))
         frame.add(label('Explore networks. Inspect systems. Build your skills.', 'section'))
         self.tabs = Gtk.Stack()

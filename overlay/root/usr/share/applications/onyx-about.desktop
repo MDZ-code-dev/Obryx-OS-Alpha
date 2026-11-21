@@ -1,6 +1,6 @@
 [Desktop Entry]
 Type=Application
-Name=About ONYX OS
+Name=About Obryx OS
 Exec=xdg-open file:///usr/share/onyx-os/about.html
 Icon=preferences-system
 Terminal=false

@@ -23,20 +23,20 @@ ln -sfn /usr/share/wallpapers/ONYX /usr/share/wallpapers/Default
 # to work, but expose ONYX to the desktop and About System dialog.
 if [ -f /usr/lib/os-release ]; then
   sed -i \
-    -e 's/^NAME=.*/NAME="ONYX OS"/' \
-    -e 's/^PRETTY_NAME=.*/PRETTY_NAME="ONYX OS 0.4 Alpha 4"/' \
+    -e 's/^NAME=.*/NAME="Obryx OS"/' \
+    -e 's/^PRETTY_NAME=.*/PRETTY_NAME="Obryx OS 0.4 Alpha 4"/' \
     /usr/lib/os-release
 elif [ -f /etc/os-release ]; then
   sed -i \
-    -e 's/^NAME=.*/NAME="ONYX OS"/' \
-    -e 's/^PRETTY_NAME=.*/PRETTY_NAME="ONYX OS 0.4 Alpha 4"/' \
+    -e 's/^NAME=.*/NAME="Obryx OS"/' \
+    -e 's/^PRETTY_NAME=.*/PRETTY_NAME="Obryx OS 0.4 Alpha 4"/' \
     /etc/os-release
 fi
 test -e /usr/share/wallpapers/Default/contents/images/1920x1080.png || {
   echo "FATAL: ONYX system wallpaper was not set" >&2; exit 39;
 }
-grep -q 'ONYX OS 0.4 Alpha 4' /usr/lib/os-release /etc/os-release 2>/dev/null || {
-  echo "FATAL: ONYX OS branding not present in os-release" >&2; exit 40;
+grep -q 'Obryx OS 0.4 Alpha 4' /usr/lib/os-release /etc/os-release 2>/dev/null || {
+  echo "FATAL: Obryx OS branding not present in os-release" >&2; exit 40;
 }
 echo "ONYX-OS: default system wallpaper, dark UI configuration and OS name verified."
 
@@ -71,7 +71,7 @@ for group in Window Button View; do
   kwriteconfig6 --file /usr/share/color-schemes/OnyxGlass.colors --group "Colors:$group" --key BackgroundNormal "25,32,44"
   kwriteconfig6 --file /usr/share/color-schemes/OnyxGlass.colors --group "Colors:$group" --key DecorationFocus "158,207,226"
 done
-kwriteconfig6 --file /usr/share/color-schemes/OnyxGlass.colors --group General --key Name "ONYX Glass"
+kwriteconfig6 --file /usr/share/color-schemes/OnyxGlass.colors --group General --key Name "Obryx Glass"
 kwriteconfig6 --file /usr/share/color-schemes/OnyxGlass.colors --group "Colors:Selection" --key BackgroundNormal "59,97,119"
 
 # Keep Plymouth's password and progress rendering. Supply the ONYX image
@@ -111,7 +111,7 @@ for entry in /etc/xdg/autostart/*welcome*.desktop /usr/share/applications/org.kd
   printf '[Desktop Entry]\nType=Application\nHidden=true\n' > "/etc/skel/.config/autostart/$(basename "$entry")"
 done
 sed -i '/^LOGO=/d; /^VARIANT=/d; /^VERSION=/d' /usr/lib/os-release
-printf 'LOGO=onyx-crystal\nVARIANT="ONYX Desktop"\nVERSION="0.4 Alpha 4"\n' >> /usr/lib/os-release
+printf 'LOGO=onyx-crystal\nVARIANT="Obryx Desktop"\nVERSION="0.4 Alpha 4"\n' >> /usr/lib/os-release
 
 # Fedora's live session can inject its own per-user welcome preferences.
 # Apply the live image policy before the KDED module starts.
@@ -178,7 +178,7 @@ for dir in /etc/xdg /etc/skel/.config; do
 done
 test -x /usr/bin/fastfetch || exit 49
 /usr/bin/fastfetch --config /etc/xdg/fastfetch/config.jsonc --pipe > /tmp/onyx-fastfetch-check
- grep -q 'ONYX OS 0.4' /tmp/onyx-fastfetch-check || exit 50
+ grep -q 'Obryx OS 0.4' /tmp/onyx-fastfetch-check || exit 50
 rm -f /tmp/onyx-fastfetch-check
 
 # Cyber Mode dependencies are native Fedora packages; Kali uses an optional container.

@@ -1,6 +1,6 @@
-# ONYX Cyber Mode — 0.4 Alpha 4
+# Obryx Cyber Mode — 0.4 Alpha 4
 
-Open Cyber Mode from Home or search for ONYX Cyber Mode.
+Open Cyber Mode from Home or search for Obryx Cyber Mode.
 
 ## Included tools
 

@@ -3,7 +3,7 @@ count=1
 rules=onyx-shell
 
 [onyx-shell]
-Description=ONYX Home and Settings
+Description=Obryx Home and Settings
 wmclass=org.onyx.Desktop.(Home|Settings|Apps|Cyber)
 wmclassmatch=3
 noborder=true

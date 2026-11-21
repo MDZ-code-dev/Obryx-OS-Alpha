@@ -1,4 +1,4 @@
 {
   "logo": {"type": "file", "source": "/usr/share/onyx-os/fastfetch-logo.txt", "color": {"1": "cyan"}},
-  "modules": ["title", "separator", {"type": "custom", "key": "OS", "format": "ONYX OS 0.4"}, "kernel", "uptime", "packages", "shell", "display", "de", "wm", "terminal", "cpu", "gpu", "memory", "disk", "battery", "colors"]
+  "modules": ["title", "separator", {"type": "custom", "key": "OS", "format": "Obryx OS 0.4"}, "kernel", "uptime", "packages", "shell", "display", "de", "wm", "terminal", "cpu", "gpu", "memory", "disk", "battery", "colors"]
 }

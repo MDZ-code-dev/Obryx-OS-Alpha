@@ -1,4 +1,4 @@
-# ONYX OS 0.4 acknowledgments
+# Obryx OS 0.4 acknowledgments
 
 ONYX uses Fedora's package base and KDE Plasma, KWin, Breeze and Discover.
 Their copyright notices and original licenses remain with their packages.

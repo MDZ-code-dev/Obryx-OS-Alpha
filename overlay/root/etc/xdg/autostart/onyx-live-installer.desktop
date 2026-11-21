@@ -1,6 +1,6 @@
 [Desktop Entry]
 Type=Application
-Name=Install ONYX OS
+Name=Install Obryx OS
 OnlyShowIn=KDE;
 Exec=/usr/local/bin/onyx-live-installer
 Terminal=false

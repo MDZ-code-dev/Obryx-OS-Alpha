@@ -109,7 +109,7 @@ def click_home():
     score, x, y = best
     print(f"Dock crystal match {score:.3f} at {x},{y}", flush=True)
     if score < 0.75:
-        raise RuntimeError("Could not locate ONYX Home crystal on the dock")
+        raise RuntimeError("Could not locate Obryx Home crystal on the dock")
     command("input-send-event", events=[
         {"type": "abs", "data": {"axis": axis, "value": round(value * 32767 / maximum)}}
         for axis, value, maximum in (("x", x, width - 1), ("y", y, height - 1))
@@ -169,7 +169,7 @@ try:
         elapsed = int(time.monotonic() - start)
         name = f"boot-{elapsed:03d}"
         words = screen(name)
-        if not menu_selected and re.search(r"Start\s+ONYX\s+OS", words, re.I):
+        if not menu_selected and re.search(r"Start\s+Obryx\s+OS", words, re.I):
             keys("ret")
             menu_selected = True
         if re.search(r"\b\d{1,2}:\d{2}\b", words) and not re.search(
@@ -185,7 +185,7 @@ try:
     deadline = time.monotonic() + 600
     while time.monotonic() < deadline:
         words = screen("pre-shortcut")
-        if re.search(r"GRUB|Start\s+ONYX\s+OS|edit the selected entry", words, re.I):
+        if re.search(r"GRUB|Start\s+Obryx\s+OS|edit the selected entry", words, re.I):
             raise RuntimeError("VM is still at the bootloader before the desktop shortcut")
         keys("meta_l-e")
         if wait_for("file-manager", r"\bDolphin\b|\bTrash\b", 12):
@@ -202,28 +202,28 @@ try:
     dock_x, dock_y, screen_width, screen_height = click_home()
     if not wait_for("home", r"(?s)\bFiles\b.*\bBrowser\b.*\bStore\b.*\bTerminal\b", 60):
         raise RuntimeError("Clicking the ONYX dock crystal did not open Home")
-    if not wait_for("home", r"ONYX.*0[.,]4", 10):
+    if not wait_for("home", r"Obryx.*0[.,]4", 10):
         raise RuntimeError("Home does not visibly identify ONYX 0.4")
     keys("alt-f4")
     time.sleep(1)
     keys("meta_l")
     if not wait_for("home", r"Pinned.*|All apps", 30):
-        raise RuntimeError("Windows key did not open ONYX Home")
+        raise RuntimeError("Windows key did not open Obryx Home")
     keys("meta_l")
     time.sleep(1)
     if re.search(r"Pinned|All apps", screen("home-closed")):
-        raise RuntimeError("Windows key did not close ONYX Home")
+        raise RuntimeError("Windows key did not close Obryx Home")
     keys("meta_l")
     if not wait_for("home", r"Pinned|All apps", 30):
-        raise RuntimeError("Windows key did not reopen ONYX Home")
+        raise RuntimeError("Windows key did not reopen Obryx Home")
     keys("ctrl-f")
     if not wait_for("apps", r"Applications|Search installed applications", 30):
         raise RuntimeError("Application search did not open from Home")
-    for char in "onyx settings":
+    for char in "obryx settings":
         keys("spc" if char == " " else char)
     keys("ret")
     if not wait_for("settings", r"(?s)\bDisplay\b.*\bSound\b.*\bBluetooth\b|Resolution,?\s+scale.*Speakers", 45):
-        raise RuntimeError("ONYX Settings did not open from application search")
+        raise RuntimeError("Obryx Settings did not open from application search")
     click_word('Appearance')
     if not wait_for('appearance', r'Choose wallpaper', 15):
         raise RuntimeError('Appearance has no wallpaper control')
@@ -241,7 +241,7 @@ try:
         raise RuntimeError('Terminal did not open')
     type_text('fastfetch')
     keys('ret')
-    if not wait_for('fastfetch', r'(?s)ONYX.*(?:0[.,]4.*Kernel|CPU)', 30):
+    if not wait_for('fastfetch', r'(?s)Obryx.*(?:0[.,]4.*Kernel|CPU)', 30):
         raise RuntimeError('Fastfetch did not show ONYX system statistics')
     keys('alt-f4')
     time.sleep(1)

@@ -14,7 +14,7 @@ class Developer(Gtk.Application):
         if self.window:
             self.window.present()
             return
-        self.window = Gtk.ApplicationWindow(application=self, title='ONYX Developer')
+        self.window = Gtk.ApplicationWindow(application=self, title='Obryx Forge')
         self.window.connect('destroy', lambda *_: setattr(self, 'window', None))
         self.window.set_default_size(700, 580)
         css = Gtk.CssProvider()
@@ -23,7 +23,7 @@ class Developer(Gtk.Application):
         body = styled(Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12), 'body')
         styled(body, 'onyx-frame')
         self.window.add(scroll(body))
-        body.add(label('Developer', 'heading'))
+        body.add(label('Obryx Forge', 'heading'))
         body.add(label('Code, build, debug and connect your boards.', 'section'))
         for title, action in [
             ('Code editor — Kate', lambda: self.command(['kate'])),

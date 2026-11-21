@@ -1,14 +1,14 @@
-# ONYX OS 0.2 Alpha
+# Obryx OS 0.2 Alpha
 
-ONYX OS is an experimental **Fedora 45 KDE Plasma desktop remix**. The goal is a real bootable, installable Linux Live ISO—not a website or a TV app.
+Obryx OS is an experimental **Fedora 45 KDE Plasma desktop remix**. The goal is a real bootable, installable Linux Live ISO—not a website or a TV app.
 
 ## Status
-ONYX OS 0.2 Alpha is a new experimental build recipe. **It has not yet been built or boot-tested.** Fedora KDE 0.1 booted but did not show ONYX branding. This revision embeds the PNG wallpaper, changes the OS display name while preserving Fedora's internal package ID, sets system-wide KDE defaults, and includes fail-fast checks during KIWI configuration. The GRUB menu and installer may still identify Fedora.
+Obryx OS 0.2 Alpha is a new experimental build recipe. **It has not yet been built or boot-tested.** Fedora KDE 0.1 booted but did not show ONYX branding. This revision embeds the PNG wallpaper, changes the OS display name while preserving Fedora's internal package ID, sets system-wide KDE defaults, and includes fail-fast checks during KIWI configuration. The GRUB menu and installer may still identify Fedora.
 
 ## Build with GitHub Actions
-1. Open **Actions** → **Build ONYX OS Live ISO** → **Run workflow**.
+1. Open **Actions** → **Build Obryx OS Live ISO** → **Run workflow**.
 2. Follow the **Build Fedora KDE image** job logs.
-3. If the build succeeds, open the repository's **Releases** and select **ONYX OS 0.2 Alpha**. The resulting image is **not** available under Actions artifacts.
+3. If the build succeeds, open the repository's **Releases** and select **Obryx OS 0.2 Alpha**. The resulting image is **not** available under Actions artifacts.
 4. If the ISO is smaller than GitHub's 2 GiB release-asset limit, download the single ISO and the SHA256 checksum. Otherwise download **every** numbered `.iso.partXX` file, the `.sha256` checksum and `COMBINE-ONYX-WINDOWS.cmd` into the same folder on a Windows computer; double-click the CMD to reconstruct the ISO and check its checksum.
 5. Boot-test the reconstructed ISO in a virtual machine or Live USB before installing anywhere.
 6. Use Rufus to write the ISO on a USB; choose **Try**, not Install, initially.

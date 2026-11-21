@@ -30,7 +30,7 @@ if not errors:
     except (ValueError, KeyError, AssertionError) as exc:
         errors.append(f"Invalid splash metadata: {exc}")
     layout = checks["plasma layout"].read_text()
-    for widget in ("org.kde.plasma.icon", "onyx-home.desktop", "per.nonobeam.paneldock", "org.kde.plasma.systemtray"):
+    for widget in ("org.obryx.home", "onyx-home.desktop", "per.nonobeam.paneldock", "org.kde.plasma.systemtray"):
         if widget not in layout:
             errors.append(f"Missing functional Plasma widget: {widget}")
     script = checks["session initializer"].read_text()
@@ -45,6 +45,16 @@ if not errors:
         desktop = checks[label].read_text()
         if "[Desktop Entry]" not in desktop or "Exec=" not in desktop:
             errors.append(f"{label} is not a valid desktop entry")
+
+launcher = overlay / "usr/share/plasma/plasmoids/org.obryx.home/metadata.json"
+try:
+    metadata = json.loads(launcher.read_text())
+    assert "org.kde.plasma.launchermenu" in metadata["X-Plasma-Provides"]
+    assert metadata["KPlugin"]["Id"] == "org.obryx.home"
+except (OSError, ValueError, KeyError, AssertionError) as exc:
+    errors.append(f"Home must register as a Plasma launcher: {exc}")
+for asset in ("crystal.svg", "onyx-logo.svg"):
+    ET.parse(overlay / "usr/share/onyx-os" / asset)
 
 if errors:
     print("ONYX 0.3 source preflight FAILED:", *errors, sep="\n - ", file=sys.stderr)

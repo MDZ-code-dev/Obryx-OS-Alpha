@@ -1,6 +1,6 @@
 [Desktop Entry]
 Type=Application
-Name=ONYX Desktop
+Name=Obryx Desktop
 Comment=Configure ONYX desktop on first login
 Exec=/usr/local/bin/onyx-desktop-setup
 OnlyShowIn=KDE;
