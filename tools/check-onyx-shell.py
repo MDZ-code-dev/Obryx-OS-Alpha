@@ -66,3 +66,16 @@ with tempfile.TemporaryDirectory() as folder:
         assert not app.apply_wallpaper(Path(folder)/'missing.png')
         assert len(calls) == 1
 print('Separate application IDs and wallpaper apply/error tests passed.')
+
+# Widget picker uses Plasma's real endpoint; failed calls keep Settings visible.
+from unittest.mock import Mock
+window = Mock()
+with patch.object(app, 'window', window), patch.object(app, 'apply_value', return_value=True) as call:
+    app.add_widgets()
+    assert call.call_args.args[0][-1] == 'org.kde.PlasmaShell.toggleWidgetExplorer'
+    window.hide.assert_called_once()
+window.reset_mock()
+with patch.object(app, 'window', window), patch.object(app, 'apply_value', return_value=False):
+    app.add_widgets()
+    window.hide.assert_not_called()
+print('Widget picker launch and failure handling passed.')

@@ -234,7 +234,10 @@ try:
     keys('ret')
     if not wait_for('wallpaper', r'Wallpaper applied', 20):
         raise RuntimeError('Wallpaper picker did not apply through Plasma')
-    keys('alt-f4')
+    click_word('Add')
+    if not wait_for('widgets', r'Widgets|Get New Widgets', 20):
+        raise RuntimeError('Add widgets did not open the Plasma widget picker')
+    keys('esc')
     # Launch the real terminal command and inspect its output.
     keys('ctrl-alt-t')
     if not wait_for('terminal', r'Konsole|liveuser|onyx', 20):

@@ -1,10 +1,19 @@
 [General]
-count=1
-rules=onyx-shell
+count=2
+rules=onyx-shell,obryx-window-opacity
 
 [onyx-shell]
 Description=Obryx Home and Settings
-wmclass=org.onyx.Desktop.(Home|Settings|Apps|Cyber)
+wmclass=org.onyx.Desktop.(Home|Settings|Apps|Cyber|Developer)
 wmclassmatch=3
 noborder=true
 noborderrule=2
+
+[obryx-window-opacity]
+Description=Obryx readable windows
+wmclassmatch=0
+types=33
+opacityactive=98
+opacityactiverule=2
+opacityinactive=98
+opacityinactiverule=2

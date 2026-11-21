@@ -24,6 +24,16 @@ SETTINGS = (
     ("Wi-Fi & network", "Connections and saved networks", "wifi", "kcm_networkmanagement"),
     ("Bluetooth", "Pair and manage devices", "bluetooth", "kcm_bluetooth"),
     ("Appearance", "Wallpaper and desktop animations", "palette", "kcm_colors"),
+    ("Widgets", "Add clocks, calendars, media controls and more", "layout-grid", "obryx_widgets"),
+    ("Keyboard", "Keyboard layouts and typing", "settings-2", "kcm_keyboard"),
+    ("Shortcuts", "Global keyboard shortcuts", "settings-2", "kcm_keys"),
+    ("Mouse", "Pointer speed and scrolling", "settings-2", "kcm_mouse"),
+    ("Touchpad", "Tapping, scrolling and gestures", "settings-2", "kcm_touchpad"),
+    ("Power & battery", "Sleep, brightness and energy use", "monitor", "kcm_powerdevilprofilesconfig"),
+    ("Notifications", "App alerts, sounds and do not disturb", "volume-2", "kcm_notifications"),
+    ("Fonts", "Font family, size and rendering", "palette", "kcm_fonts"),
+    ("Window effects", "Animations and desktop effects", "layout-grid", "kcm_kwin_effects"),
+    ("Window rules", "Window behaviour and opacity", "settings-2", "kcm_kwinrules"),
     ("All settings", "Open the full system settings", "settings-2", None),
 )
 
@@ -298,7 +308,16 @@ class Shell(Gtk.Application):
             rows.add(button(line, lambda t=title, m=module: self.setting_detail(t, m), "setting"))
         panel.pack_start(scroll(rows), True, True, 0)
 
+    def add_widgets(self):
+        if self.apply_value(["dbus-send", "--session", "--print-reply",
+                             "--dest=org.kde.plasmashell", "/PlasmaShell",
+                             "org.kde.PlasmaShell.toggleWidgetExplorer"]):
+            self.window.hide()
+
     def setting_detail(self, title, module):
+        if module == "obryx_widgets":
+            self.add_widgets()
+            return
         if not module or module not in ("kcm_networkmanagement", "kcm_pulseaudio", "kcm_colors"):
             self.open_setting(module)
             return
@@ -345,12 +364,20 @@ class Shell(Gtk.Application):
         if module == "kcm_colors":
             body.add(button(label("Choose wallpaper…", "row-title"), self.choose_wallpaper, "setting"))
             body.add(label("Choose a JPG or PNG for every desktop screen.", "detail"))
+            body.add(button(label("Add widgets…", "row-title"), self.add_widgets, "setting"))
+            body.add(label("Drag widgets onto the desktop. Use Edit Mode to move or remove them.", "detail"))
+            for caption, target in (("Colours & accent", "kcm_colors"),
+                                    ("Icons", "kcm_icons"), ("Cursors", "kcm_cursortheme"),
+                                    ("Window decorations", "kcm_kwindecoration")):
+                body.add(button(label(caption + "  ›", "row-title"),
+                                lambda m=target: self.open_setting(m), "setting"))
         more = button(label("Advanced KDE " + title.lower() + " settings  ›", "row-title"),
                       lambda: self.open_setting(module), "setting")
         if module != "kcm_colors":
             body.add(more)
-        self.stack.add_named(body, "detail")
-        body.show_all()
+        detail = scroll(body)
+        self.stack.add_named(detail, "detail")
+        detail.show_all()
         self.stack.set_visible_child_name("detail")
 
     def choose_wallpaper(self):

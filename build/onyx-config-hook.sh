@@ -163,19 +163,9 @@ echo "ONYX 0.4 glass compositor and rounded corners installed."
 
 printf "onyx-live\n" > /etc/hostname
 
-# Make advanced KDE settings visually consistent without replacing hardware controls.
-for dir in /etc/xdg /etc/skel/.config; do
-  install -m 644 /etc/xdg/kwinrulesrc "$dir/kwinrulesrc" 2>/dev/null || true
-  kwriteconfig6 --file "$dir/kwinrulesrc" --group General --key count 2
-  kwriteconfig6 --file "$dir/kwinrulesrc" --group General --key rules onyx-shell,onyx-settings-glass
-  kwriteconfig6 --file "$dir/kwinrulesrc" --group onyx-settings-glass --key Description "ONYX advanced settings glass"
-  kwriteconfig6 --file "$dir/kwinrulesrc" --group onyx-settings-glass --key wmclass systemsettings
-  kwriteconfig6 --file "$dir/kwinrulesrc" --group onyx-settings-glass --key wmclassmatch 1
-  kwriteconfig6 --file "$dir/kwinrulesrc" --group onyx-settings-glass --key opacityactive 92
-  kwriteconfig6 --file "$dir/kwinrulesrc" --group onyx-settings-glass --key opacityactiverule 2
-  kwriteconfig6 --file "$dir/kwinrulesrc" --group onyx-settings-glass --key opacityinactive 92
-  kwriteconfig6 --file "$dir/kwinrulesrc" --group onyx-settings-glass --key opacityinactiverule 2
-done
+# Apply the same subtle opacity to normal application windows and dialogs.
+# Panels, tooltips and desktop surfaces keep their own themes.
+install -m 644 /etc/xdg/kwinrulesrc /etc/skel/.config/kwinrulesrc
 test -x /usr/bin/fastfetch || exit 49
 /usr/bin/fastfetch --config /etc/xdg/fastfetch/config.jsonc --pipe > /tmp/onyx-fastfetch-check
  grep -q 'Obryx OS 0.4' /tmp/onyx-fastfetch-check || exit 50
