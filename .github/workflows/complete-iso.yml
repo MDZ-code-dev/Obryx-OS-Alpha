@@ -1,9 +1,9 @@
-name: Download complete ONYX ISO
+name: Download complete Obryx ISO
 
 on:
   workflow_dispatch:
   workflow_run:
-    workflows: ["Build ONYX OS Live ISO"]
+    workflows: ["Build Obryx OS Live ISO"]
     branches: [onyx-0.4-desktop]
     types: [completed]
 
@@ -28,7 +28,7 @@ jobs:
         run: |
           set -Eeuo pipefail
           mkdir parts complete
-          ISO=ONYX-OS-0.4-Alpha4-x86_64.iso
+          ISO=Obryx-OS-0.4-Alpha4-x86_64.iso
           TAG=v0.4.0-alpha.4
           gh release view "$TAG" --json assets > release.json
           if jq -e --arg name "$ISO" '.assets[] | select(.name == $name)' release.json >/dev/null; then
@@ -38,7 +38,7 @@ jobs:
             python3 - <<'PY'
           from pathlib import Path
           import shutil
-          name = 'ONYX-OS-0.4-Alpha4-x86_64.iso'
+          name = 'Obryx-OS-0.4-Alpha4-x86_64.iso'
           parts = sorted(Path('parts').glob(name + '.part*'))
           if not parts or [p.name for p in parts] != [f'{name}.part{i:02d}' for i in range(len(parts))]:
               raise SystemExit('Missing or unexpected ISO parts')
@@ -55,7 +55,7 @@ jobs:
         id: iso
         uses: actions/upload-artifact@v4
         with:
-          name: ONYX-OS-0.4-Alpha4-complete-ISO
+          name: Obryx-OS-0.4-Alpha4-complete-ISO
           path: complete/*
           compression-level: 0
           retention-days: 7
@@ -65,5 +65,5 @@ jobs:
           ARTIFACT_URL: ${{ steps.iso.outputs.artifact-url }}
         run: |
           echo "Download: $ARTIFACT_URL" >> "$GITHUB_STEP_SUMMARY"
-          echo "Extract the ZIP once, then select ONYX-OS-0.4-Alpha4-x86_64.iso in Rufus. No combine script is needed." >> "$GITHUB_STEP_SUMMARY"
+          echo "Extract the ZIP once, then select Obryx-OS-0.4-Alpha4-x86_64.iso in Rufus. No combine script is needed." >> "$GITHUB_STEP_SUMMARY"
           echo "Download expires after 7 days. Run this workflow again to regenerate it from the verified release." >> "$GITHUB_STEP_SUMMARY"
