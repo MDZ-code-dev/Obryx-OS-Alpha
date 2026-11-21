@@ -16,6 +16,8 @@ permissions:
 
 jobs:
   build:
+    # Paused at the user's request while new design ideas are collected.
+    if: ${{ false }}
     runs-on: ubuntu-24.04
     timeout-minutes: 240
     steps:
