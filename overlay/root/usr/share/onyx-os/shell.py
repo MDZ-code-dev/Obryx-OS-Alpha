@@ -356,12 +356,11 @@ class Shell(Gtk.Application):
             row = Gtk.Box(spacing=16)
             row.pack_start(label("Desktop animations", "row-title"), True, True, 0)
             toggle = Gtk.Switch(active=value not in ("0", "0.0"))
-            toggle.connect("state-set", lambda _, active: not self.apply_value(
-                ["kwriteconfig6", "--notify", "--file", "kdeglobals", "--group", "KDE",
-                 "--key", "AnimationDurationFactor", "0.75" if active else "0"]))
+            toggle.connect("state-set", lambda _, active: not self.set_animation_speed("0.75" if active else "0"))
             row.pack_end(toggle, False, False, 0)
             body.add(row)
         if module == "kcm_colors":
+            self.animation_controls(body)
             body.add(button(label("Choose wallpaper…", "row-title"), self.choose_wallpaper, "setting"))
             body.add(label("Choose a JPG or PNG for every desktop screen.", "detail"))
             body.add(button(label("Add widgets…", "row-title"), self.add_widgets, "setting"))
@@ -379,6 +378,74 @@ class Shell(Gtk.Application):
         self.stack.add_named(detail, "detail")
         detail.show_all()
         self.stack.set_visible_child_name("detail")
+
+    def animation_controls(self, body):
+        def choice(title, options, current, changed):
+            row = Gtk.Box(spacing=16)
+            row.pack_start(label(title, "row-title"), True, True, 0)
+            control = Gtk.ComboBoxText()
+            for key, caption in options:
+                control.append(key, caption)
+            control.set_active_id(current)
+            control.connect("changed", lambda widget: changed(widget.get_active_id()))
+            row.pack_end(control, False, False, 0)
+            body.add(row)
+
+        for title, effects in (
+            ("Minimize & restore", (("magiclamp", "Genie (Magic Lamp)"), ("squash", "Squash"))),
+            ("Open & close", (("scale", "Scale"), ("fade", "Fade"))),
+        ):
+            enabled = [effect for effect, _ in effects if self.read_value(
+                ["kreadconfig6", "--file", "kwinrc", "--group", "Plugins",
+                 "--key", effect + "Enabled", "--default",
+                 "true" if effect in ("magiclamp", "scale") else "false"]) == "true"]
+            current = enabled[0] if len(enabled) == 1 else ("custom" if enabled else "none")
+            options = list(effects) + [("none", "None")]
+            if current == "custom":
+                options.append(("custom", "Custom"))
+            choice(title, options, current,
+                   lambda selected, group=effects: self.set_animation_effects(group, selected))
+
+        row = Gtk.Box(spacing=16)
+        row.pack_start(label("Wobbly windows", "row-title"), True, True, 0)
+        wobble = self.read_value(["kreadconfig6", "--file", "kwinrc", "--group", "Plugins",
+                                  "--key", "wobblywindowsEnabled", "--default", "false"])
+        toggle = Gtk.Switch(active=wobble == "true")
+        toggle.connect("state-set", lambda _, active: not self.set_animation_effects(
+            (("wobblywindows", "Wobbly windows"),), "wobblywindows" if active else "none"))
+        row.pack_end(toggle, False, False, 0)
+        body.add(row)
+        speed = self.read_value(["kreadconfig6", "--file", "kdeglobals", "--group", "KDE",
+                                 "--key", "AnimationDurationFactor", "--default", "0.75"])
+        speeds = [("0", "Off"), ("0.5", "Fast"), ("0.75", "Smooth"), ("1", "Normal"), ("1.5", "Slow")]
+        if speed not in dict(speeds):
+            speeds.append((speed, "Custom"))
+        choice("Animation speed", speeds, speed, lambda value: self.set_animation_speed(value))
+        body.add(button(label("More effects & effect options  ›", "row-title"),
+                        lambda: self.open_setting("kcm_kwin_effects"), "setting"))
+
+    def set_animation_speed(self, value):
+        if value is None:
+            return False
+        ok = self.apply_value(["kwriteconfig6", "--notify", "--file", "kdeglobals", "--group", "KDE",
+                               "--key", "AnimationDurationFactor", value])
+        if ok:
+            self.setting_detail("Appearance", "kcm_colors")
+        return ok
+
+    def set_animation_effects(self, effects, selected):
+        if selected not in {effect for effect, _ in effects} | {"none"}:
+            return False
+        for effect, _ in effects:
+            if not self.apply_value(["kwriteconfig6", "--file", "kwinrc", "--group", "Plugins",
+                                     "--key", effect + "Enabled", "true" if effect == selected else "false"]):
+                self.setting_detail("Appearance", "kcm_colors")
+                return False
+        ok = self.apply_value(["dbus-send", "--session", "--print-reply", "--dest=org.kde.KWin",
+                               "/KWin", "org.kde.KWin.reconfigure"])
+        if not ok:
+            self.report("Animation saved, but could not reload desktop effects. Log out and back in to apply it.")
+        return ok
 
     def choose_wallpaper(self):
         chooser = Gtk.FileChooserDialog(title="Choose wallpaper", parent=self.window,

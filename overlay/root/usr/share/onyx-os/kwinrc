@@ -5,6 +5,8 @@ kwin4_effect_shapecornersEnabled=true
 slidingpopupsEnabled=true
 fadingpopupsEnabled=true
 scaleEnabled=true
+fadeEnabled=false
+wobblywindowsEnabled=false
 magiclampEnabled=true
 squashEnabled=false
 
