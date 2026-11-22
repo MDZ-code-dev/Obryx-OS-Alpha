@@ -77,7 +77,7 @@ def screen(name):
     png = artifacts / (name + ".png")
     with Image.open(ppm) as img:
         img.save(png)
-        if name in ("home", "apps", "settings"):
+        if name in ("home", "apps", "settings", "appearance", "wallpaper", "widgets", "control-location"):
             # Read light text on translucent dark panels at a larger scale.
             # Keep the original color capture as the visual test artifact.
             mono = ImageOps.invert(img.convert("L"))
@@ -133,12 +133,14 @@ def type_text(text):
 def click_word(word):
     time.sleep(1)
     screen('control-location')
-    data = subprocess.check_output(['tesseract', str(artifacts/'control-location.png'),
+    data = subprocess.check_output(['tesseract', str(artifacts/'ocr-input.pgm'),
                                    'stdout', '--psm', '11', 'tsv'], text=True, stderr=subprocess.DEVNULL)
     for line in data.splitlines()[1:]:
         columns = line.split('\t')
         if len(columns) >= 12 and columns[11].strip().casefold() == word.casefold():
             left, top, width, height = map(int, columns[6:10])
+            # The OCR image is twice the size of the original screenshot.
+            left, top, width, height = (value / 2 for value in (left, top, width, height))
             with Image.open(artifacts/'control-location.png') as picture:
                 sw, sh = picture.size
             command('input-send-event', events=[
@@ -157,6 +159,25 @@ def wait_for(name, pattern, seconds):
         if re.search(pattern, screen(name), flags=re.I | re.M):
             return True
         time.sleep(2)
+    return False
+
+
+def reveal_control(name, pattern, pages=8):
+    """Look down a scrollable Settings page without assuming a screen height."""
+    for page in range(pages + 1):
+        if wait_for(name, pattern, 3):
+            return True
+        if page == pages:
+            break
+        # Put the pointer inside the Settings content, away from its sidebar.
+        command('input-send-event', events=[
+            {'type': 'abs', 'data': {'axis': 'x', 'value': round(0.65 * 32767)}},
+            {'type': 'abs', 'data': {'axis': 'y', 'value': round(0.55 * 32767)}}])
+        for _ in range(3):
+            for down in (True, False):
+                command('input-send-event', events=[
+                    {'type': 'btn', 'data': {'button': 'wheel-down', 'down': down}}])
+            time.sleep(0.15)
     return False
 
 
@@ -228,7 +249,7 @@ try:
     if not wait_for("settings", r"(?s)\bDisplay\b.*\bSound\b.*\bBluetooth\b|Resolution,?\s+scale.*Speakers", 45):
         raise RuntimeError("Obryx Settings did not open from application search")
     click_word('Appearance')
-    if not wait_for('appearance', r'Choose wallpaper', 15):
+    if not reveal_control('appearance', r'Choose\s+wallpaper'):
         raise RuntimeError('Appearance has no wallpaper control')
     click_word('Choose')
     time.sleep(1)
@@ -237,6 +258,8 @@ try:
     keys('ret')
     if not wait_for('wallpaper', r'Wallpaper applied', 20):
         raise RuntimeError('Wallpaper picker did not apply through Plasma')
+    if not reveal_control('appearance', r'Add\s+widgets'):
+        raise RuntimeError('Appearance has no widget picker control')
     click_word('Add')
     if not wait_for('widgets', r'Widgets|Get New Widgets', 20):
         raise RuntimeError('Add widgets did not open the Plasma widget picker')
@@ -289,6 +312,8 @@ try:
         raise RuntimeError("The live session did not confirm both glass effects and the new layout")
     print(f"ONYX 0.4 UEFI, Home, search, Settings, loaded glass effects and hover passed ({changed} pixels).")
 except RuntimeError:
+    for path in sorted(artifacts.glob('*.txt')):
+        print(f'--- OCR {path.name} ---\n{path.read_text()}', flush=True)
     journal = artifacts / "journal.log"
     if journal.is_file():
         lines = journal.read_text(errors="replace").splitlines()
@@ -299,4 +324,5 @@ except RuntimeError:
 finally:
     vm.terminate()
     vm.wait(timeout=20)
+
 

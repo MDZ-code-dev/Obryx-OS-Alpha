@@ -94,11 +94,13 @@ jobs:
           sudo /usr/bin/python3 tools/test-live-desktop.py output/Obryx-OS-0.4-Alpha4-x86_64.iso
       - name: Save live session screenshots
         if: always()
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: onyx-live-session
           path: |
             vm-test/*.png
+            vm-test/*.txt
             vm-test/journal.log
           if-no-files-found: ignore
           retention-days: 7
@@ -111,7 +113,7 @@ jobs:
           from pathlib import Path
           from PIL import Image
           folder = Path("vm-test")
-          names = ["home.png", "settings.png", "cyber.png", "wallpaper.png", "fastfetch.png", "file-manager.png", "dock-idle.png", "dock-hover.png"]
+          names = ["home.png", "settings.png", "appearance.png", "control-location.png", "widgets.png", "cyber.png", "wallpaper.png", "fastfetch.png", "file-manager.png", "dock-idle.png", "dock-hover.png"]
           paths = [folder / name for name in names]
           paths += sorted(folder.glob("boot-*.png"))[-3:]
           for path in paths:
@@ -183,3 +185,4 @@ jobs:
             cat "$PART_DIR/rebuilt.sha256"
           fi
           gh release view "$TAG" --json url --jq .url
+
