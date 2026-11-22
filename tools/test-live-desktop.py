@@ -83,11 +83,14 @@ def screen(name):
             mono = ImageOps.invert(img.convert("L"))
             mono = mono.resize((mono.width * 2, mono.height * 2), Image.Resampling.BICUBIC)
             png = artifacts / "ocr-input.pgm"
-            mono.point(lambda value: 0 if value < 110 else 255).save(png)
-    return subprocess.check_output(
+            # Preserve antialiased gray labels; a fixed threshold erased them.
+            mono.save(png)
+    words = subprocess.check_output(
         ["tesseract", str(png), "stdout", "--psm", "11"],
         stderr=subprocess.DEVNULL, text=True,
     )
+    (artifacts / (name + ".txt")).write_text(words)
+    return words
 
 
 def click_home():
@@ -200,10 +203,10 @@ try:
     # Activate the installed panel applet. Building the GTK window directly
     # would miss a broken Plasma widget or panel layout.
     dock_x, dock_y, screen_width, screen_height = click_home()
-    if not wait_for("home", r"(?s)\bFiles\b.*\bBrowser\b.*\bStore\b.*\bTerminal\b", 60):
-        raise RuntimeError("Clicking the ONYX dock crystal did not open Home")
+    if not wait_for("home", r"(?s)(?=.*\bFiles\b)(?=.*\bBrowser\b)(?=.*\bStore\b)(?=.*\bTerminal\b)", 60):
+        raise RuntimeError("Dock click did not produce recognizable Home labels; see home.png and home.txt")
     if not wait_for("home", r"Obryx.*0[.,]4", 10):
-        raise RuntimeError("Home does not visibly identify ONYX 0.4")
+        raise RuntimeError("Home does not visibly identify Obryx 0.4")
     keys("alt-f4")
     time.sleep(1)
     keys("meta_l")
@@ -296,3 +299,4 @@ except RuntimeError:
 finally:
     vm.terminate()
     vm.wait(timeout=20)
+
