@@ -23,44 +23,78 @@ jobs:
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'push' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      ISO: Obryx-OS-0.4-Alpha4-x86_64.iso
+      TAG: v0.4.0-alpha.4
+      ARTIFACT_NAME: Obryx-OS-0.4-Alpha4-complete-ISO
+      EXPECTED_BYTES: '3678285824'
     steps:
-      - name: Remove superseded regenerable Alpha 3 download
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
+      - name: Reuse a complete download that is still available
+        id: existing
         shell: bash
         run: |
           set -Eeuo pipefail
-          # Keep all release assets and source files. Only remove the old packaged copy.
-          gh release view v0.4.0-alpha.3 --json assets > old-release.json
+          gh api --paginate "repos/$GH_REPO/actions/artifacts?name=$ARTIFACT_NAME&per_page=100" --jq '.artifacts[] | @json' > artifacts.jsonl
           python3 - <<'PY'
           import json
-          names = {asset['name'] for asset in json.load(open('old-release.json'))['assets']}
-          base = 'ONYX-OS-0.4-Alpha3-x86_64.iso'
-          required = {base + f'.part{i:02d}' for i in range(4)} | {base + '.sha256'}
-          if not required <= names:
-              raise SystemExit('Keep old artifact: original release files are incomplete')
+          import os
+          from datetime import datetime, timedelta, timezone
+          cutoff = datetime.now(timezone.utc) + timedelta(hours=2)
+          for line in open('artifacts.jsonl'):
+              artifact = json.loads(line)
+              if (artifact['name'] != os.environ['ARTIFACT_NAME'] or artifact['expired']
+                      or artifact['size_in_bytes'] < int(os.environ['EXPECTED_BYTES'])
+                      or datetime.fromisoformat(artifact['expires_at'].replace('Z', '+00:00')) <= cutoff):
+                  continue
+              run_id = int(artifact['workflow_run']['id'])
+              artifact_id = int(artifact['id'])
+              url = f"https://github.com/{os.environ['GH_REPO']}/actions/runs/{run_id}/artifacts/{artifact_id}"
+              with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+                  output.write('ready=true\n')
+              with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as summary:
+                  summary.write(f'Existing complete download: {url}\n\nNo duplicate ISO was uploaded.\n')
+              break
+          else:
+              with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+                  output.write('ready=false\n')
           PY
-          gh api --paginate "repos/$GH_REPO/actions/artifacts?per_page=100" --jq '.artifacts[] | select(.name == "ONYX-OS-0.4-Alpha3-complete-ISO") | .id' > obsolete-artifacts.txt
-          while IFS= read -r artifact_id; do
-            [[ "$artifact_id" =~ ^[0-9]+$ ]] || continue
-            gh api --method DELETE "repos/$GH_REPO/actions/artifacts/$artifact_id"
-          done < obsolete-artifacts.txt
+      - name: Prepare a tiny upload check
+        if: steps.existing.outputs.ready != 'true'
+        shell: bash
+        run: |
+          mkdir -p probe
+          printf '%s\n' 'Check artifact uploads before downloading the ISO.' > probe/ready.txt
+      - name: Check artifact uploads before downloading 3.7 GB
+        if: steps.existing.outputs.ready != 'true'
+        id: quota
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: Obryx-upload-check-${{ github.run_id }}-${{ github.run_attempt }}
+          path: probe/ready.txt
+          compression-level: 0
+          retention-days: 1
+          if-no-files-found: error
       - name: Download and verify complete release image
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
+        if: steps.existing.outputs.ready != 'true'
         shell: bash
         run: |
           set -Eeuo pipefail
           mkdir parts complete
-          ISO=Obryx-OS-0.4-Alpha4-x86_64.iso
-          TAG=v0.4.0-alpha.4
+          # Retry transient download errors, not checksum or validation failures.
+          download() {
+            for attempt in 1 2 3; do
+              if gh release download "$TAG" --clobber "$@"; then return 0; fi
+              if [ "$attempt" -eq 3 ]; then return 1; fi
+              sleep "$((attempt * 5))"
+            done
+          }
           gh release view "$TAG" --json assets > release.json
           if jq -e --arg name "$ISO" '.assets[] | select(.name == $name)' release.json >/dev/null; then
-            gh release download "$TAG" --pattern "$ISO" --dir complete
+            download --pattern "$ISO" --dir complete
           else
-            gh release download "$TAG" --pattern "$ISO.part*" --dir parts
+            download --pattern "$ISO.part*" --dir parts
             python3 - <<'PY'
           from pathlib import Path
           import shutil
@@ -74,12 +108,25 @@ jobs:
                       shutil.copyfileobj(source, dest)
           PY
           fi
-          gh release download "$TAG" --pattern "$ISO.sha256" --dir complete
+          download --pattern "$ISO.sha256" --dir complete
+          python3 - <<'PY'
+          import os
+          import re
+          from pathlib import Path
+          name = os.environ['ISO']
+          iso = Path('complete') / name
+          if iso.stat().st_size != int(os.environ['EXPECTED_BYTES']):
+              raise SystemExit('Unexpected Alpha 4 ISO size; do not upload')
+          checksum = Path(str(iso) + '.sha256').read_text().strip()
+          if not re.fullmatch(r'[0-9a-fA-F]{64} [ *]' + re.escape(name), checksum):
+              raise SystemExit('Unexpected checksum manifest; do not upload')
+          PY
           (cd complete && sha256sum -c "$ISO.sha256")
           rm -rf parts
       - name: Upload single download
+        if: steps.existing.outputs.ready != 'true'
         id: iso
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: Obryx-OS-0.4-Alpha4-complete-ISO
           path: complete/*
@@ -87,9 +134,24 @@ jobs:
           retention-days: 1
           if-no-files-found: error
       - name: Show download instructions
+        if: steps.iso.outputs.artifact-url != ''
         env:
           ARTIFACT_URL: ${{ steps.iso.outputs.artifact-url }}
         run: |
           echo "Download: $ARTIFACT_URL" >> "$GITHUB_STEP_SUMMARY"
           echo "Extract the ZIP once, then select Obryx-OS-0.4-Alpha4-x86_64.iso in Rufus. No combine script is needed." >> "$GITHUB_STEP_SUMMARY"
           echo "Download expires after 1 day. Run this workflow again to regenerate it from the verified release." >> "$GITHUB_STEP_SUMMARY"
+      - name: Remove this run's upload check
+        if: always() && steps.quota.outputs.artifact-id != ''
+        continue-on-error: true
+        env:
+          PROBE_ID: ${{ steps.quota.outputs.artifact-id }}
+        shell: bash
+        run: gh api --method DELETE "repos/$GH_REPO/actions/artifacts/$PROBE_ID"
+      - name: Explain upload-check failure
+        if: failure() && steps.quota.outcome == 'failure'
+        shell: bash
+        run: |
+          echo 'GitHub rejected the tiny upload check. The large ISO download was skipped.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Read the upload-check error before retrying. If it reports storage quota, a retry cannot reset accrued billing-cycle usage.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'The verified Alpha 4 release is preserved. This run did not produce a complete download.' >> "$GITHUB_STEP_SUMMARY"
