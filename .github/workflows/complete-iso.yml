@@ -12,7 +12,6 @@ on:
 
 permissions:
   contents: read
-  actions: write
 
 concurrency:
   group: onyx-complete-alpha4
@@ -22,62 +21,47 @@ jobs:
   package:
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'push' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 45
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
+      HF_TOKEN: ${{ secrets.HF_SECRET }}
+      HF_REPO_NAME: Obryx-OS
       ISO: Obryx-OS-0.4-Alpha4-x86_64.iso
       TAG: v0.4.0-alpha.4
-      ARTIFACT_NAME: Obryx-OS-0.4-Alpha4-complete-ISO
       EXPECTED_BYTES: '3678285824'
     steps:
-      - name: Reuse a complete download that is still available
-        id: existing
+      - name: Check Hugging Face access
+        id: hf
         shell: bash
         run: |
           set -Eeuo pipefail
-          gh api --paginate "repos/$GH_REPO/actions/artifacts?name=$ARTIFACT_NAME&per_page=100" --jq '.artifacts[] | @json' > artifacts.jsonl
+          if [ -z "$HF_TOKEN" ]; then
+            echo '::error::The HF_SECRET repository secret is missing. Add a Hugging Face write token under Settings > Secrets and variables > Actions.'
+            exit 1
+          fi
+          python3 -m pip install --quiet --disable-pip-version-check 'huggingface_hub>=0.34'
           python3 - <<'PY'
-          import json
           import os
-          from datetime import datetime, timedelta, timezone
-          cutoff = datetime.now(timezone.utc) + timedelta(hours=2)
-          for line in open('artifacts.jsonl'):
-              artifact = json.loads(line)
-              if (artifact['name'] != os.environ['ARTIFACT_NAME'] or artifact['expired']
-                      or artifact['size_in_bytes'] < int(os.environ['EXPECTED_BYTES'])
-                      or datetime.fromisoformat(artifact['expires_at'].replace('Z', '+00:00')) <= cutoff):
-                  continue
-              run_id = int(artifact['workflow_run']['id'])
-              artifact_id = int(artifact['id'])
-              url = f"https://github.com/{os.environ['GH_REPO']}/actions/runs/{run_id}/artifacts/{artifact_id}"
-              with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
-                  output.write('ready=true\n')
-              with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as summary:
-                  summary.write(f'Existing complete download: {url}\n\nNo duplicate ISO was uploaded.\n')
-              break
-          else:
-              with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
-                  output.write('ready=false\n')
+          from huggingface_hub import HfApi
+          from huggingface_hub.utils import EntryNotFoundError, RepositoryNotFoundError
+          api = HfApi()
+          user = api.whoami()['name']
+          repo_id = f"{user}/{os.environ['HF_REPO_NAME']}"
+          api.create_repo(repo_id, private=True, exist_ok=True)
+          uploaded = 'false'
+          try:
+              [info] = api.get_paths_info(repo_id, [os.environ['ISO']])
+              if getattr(info, 'size', 0) == int(os.environ['EXPECTED_BYTES']):
+                  uploaded = 'true'
+          except (EntryNotFoundError, RepositoryNotFoundError, ValueError):
+              pass
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
+              out.write(f'repo={repo_id}\nuploaded={uploaded}\n')
           PY
-      - name: Prepare a tiny upload check
-        if: steps.existing.outputs.ready != 'true'
-        shell: bash
-        run: |
-          mkdir -p probe
-          printf '%s\n' 'Check artifact uploads before downloading the ISO.' > probe/ready.txt
-      - name: Check artifact uploads before downloading 3.7 GB
-        if: steps.existing.outputs.ready != 'true'
-        id: quota
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: Obryx-upload-check-${{ github.run_id }}-${{ github.run_attempt }}
-          path: probe/ready.txt
-          compression-level: 0
-          retention-days: 1
-          if-no-files-found: error
+
       - name: Download and verify complete release image
-        if: steps.existing.outputs.ready != 'true'
+        if: steps.hf.outputs.uploaded != 'true'
         shell: bash
         run: |
           set -Eeuo pipefail
@@ -97,8 +81,9 @@ jobs:
             download --pattern "$ISO.part*" --dir parts
             python3 - <<'PY'
           from pathlib import Path
+          import os
           import shutil
-          name = 'Obryx-OS-0.4-Alpha4-x86_64.iso'
+          name = os.environ['ISO']
           parts = sorted(Path('parts').glob(name + '.part*'))
           if not parts or [p.name for p in parts] != [f'{name}.part{i:02d}' for i in range(len(parts))]:
               raise SystemExit('Missing or unexpected ISO parts')
@@ -106,6 +91,7 @@ jobs:
               for part in parts:
                   with part.open('rb') as source:
                       shutil.copyfileobj(source, dest)
+                  part.unlink()
           PY
           fi
           download --pattern "$ISO.sha256" --dir complete
@@ -123,35 +109,38 @@ jobs:
           PY
           (cd complete && sha256sum -c "$ISO.sha256")
           rm -rf parts
-      - name: Upload single download
-        if: steps.existing.outputs.ready != 'true'
-        id: iso
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: Obryx-OS-0.4-Alpha4-complete-ISO
-          path: complete/*
-          compression-level: 0
-          retention-days: 1
-          if-no-files-found: error
-      - name: Show download instructions
-        if: steps.iso.outputs.artifact-url != ''
+
+      - name: Upload single ISO to Hugging Face
+        if: steps.hf.outputs.uploaded != 'true'
         env:
-          ARTIFACT_URL: ${{ steps.iso.outputs.artifact-url }}
-        run: |
-          echo "Download: $ARTIFACT_URL" >> "$GITHUB_STEP_SUMMARY"
-          echo "Extract the ZIP once, then select Obryx-OS-0.4-Alpha4-x86_64.iso in Rufus. No combine script is needed." >> "$GITHUB_STEP_SUMMARY"
-          echo "Download expires after 1 day. Run this workflow again to regenerate it from the verified release." >> "$GITHUB_STEP_SUMMARY"
-      - name: Remove this run's upload check
-        if: always() && steps.quota.outputs.artifact-id != ''
-        continue-on-error: true
-        env:
-          PROBE_ID: ${{ steps.quota.outputs.artifact-id }}
-        shell: bash
-        run: gh api --method DELETE "repos/$GH_REPO/actions/artifacts/$PROBE_ID"
-      - name: Explain upload-check failure
-        if: failure() && steps.quota.outcome == 'failure'
+          HF_REPO: ${{ steps.hf.outputs.repo }}
+          HF_HUB_ENABLE_HF_TRANSFER: '0'
         shell: bash
         run: |
-          echo 'GitHub rejected the tiny upload check. The large ISO download was skipped.' >> "$GITHUB_STEP_SUMMARY"
-          echo 'Read the upload-check error before retrying. If it reports storage quota, a retry cannot reset accrued billing-cycle usage.' >> "$GITHUB_STEP_SUMMARY"
-          echo 'The verified Alpha 4 release is preserved. This run did not produce a complete download.' >> "$GITHUB_STEP_SUMMARY"
+          set -Eeuo pipefail
+          python3 - <<'PY'
+          import os
+          from huggingface_hub import HfApi
+          api = HfApi()
+          api.upload_folder(
+              repo_id=os.environ['HF_REPO'],
+              folder_path='complete',
+              commit_message=f"Obryx OS {os.environ['TAG']} complete ISO",
+          )
+          PY
+
+      - name: Show download link
+        env:
+          HF_REPO: ${{ steps.hf.outputs.repo }}
+          ALREADY: ${{ steps.hf.outputs.uploaded }}
+        shell: bash
+        run: |
+          url="https://huggingface.co/$HF_REPO/resolve/main/$ISO?download=true"
+          {
+            if [ "$ALREADY" = 'true' ]; then echo 'The complete ISO was already on Hugging Face, so nothing was re-uploaded.'; echo; fi
+            echo "Download the complete ISO (one file, no combining): $url"
+            echo
+            echo "Checksum: https://huggingface.co/$HF_REPO/resolve/main/$ISO.sha256"
+            echo
+            echo 'The Hugging Face repo is private: sign in to huggingface.co in your browser first. Then select the .iso in Rufus.'
+          } >> "$GITHUB_STEP_SUMMARY"
