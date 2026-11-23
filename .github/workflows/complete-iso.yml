@@ -2,6 +2,9 @@ name: Download complete Obryx ISO
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/complete-iso.yml']
   workflow_run:
     workflows: ["Build Obryx OS Live ISO"]
     branches: [onyx-0.4-desktop]
@@ -9,6 +12,7 @@ on:
 
 permissions:
   contents: read
+  actions: write
 
 concurrency:
   group: onyx-complete-alpha4
@@ -16,10 +20,32 @@ concurrency:
 
 jobs:
   package:
-    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'push' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
+      - name: Remove superseded regenerable Alpha 3 download
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          # Keep all release assets and source files. Only remove the old packaged copy.
+          gh release view v0.4.0-alpha.3 --json assets > old-release.json
+          python3 - <<'PY'
+          import json
+          names = {asset['name'] for asset in json.load(open('old-release.json'))['assets']}
+          base = 'ONYX-OS-0.4-Alpha3-x86_64.iso'
+          required = {base + f'.part{i:02d}' for i in range(4)} | {base + '.sha256'}
+          if not required <= names:
+              raise SystemExit('Keep old artifact: original release files are incomplete')
+          PY
+          gh api --paginate "repos/$GH_REPO/actions/artifacts?per_page=100" --jq '.artifacts[] | select(.name == "ONYX-OS-0.4-Alpha3-complete-ISO") | .id' > obsolete-artifacts.txt
+          while IFS= read -r artifact_id; do
+            [[ "$artifact_id" =~ ^[0-9]+$ ]] || continue
+            gh api --method DELETE "repos/$GH_REPO/actions/artifacts/$artifact_id"
+          done < obsolete-artifacts.txt
       - name: Download and verify complete release image
         env:
           GH_TOKEN: ${{ github.token }}
@@ -58,7 +84,7 @@ jobs:
           name: Obryx-OS-0.4-Alpha4-complete-ISO
           path: complete/*
           compression-level: 0
-          retention-days: 7
+          retention-days: 1
           if-no-files-found: error
       - name: Show download instructions
         env:
@@ -66,4 +92,4 @@ jobs:
         run: |
           echo "Download: $ARTIFACT_URL" >> "$GITHUB_STEP_SUMMARY"
           echo "Extract the ZIP once, then select Obryx-OS-0.4-Alpha4-x86_64.iso in Rufus. No combine script is needed." >> "$GITHUB_STEP_SUMMARY"
-          echo "Download expires after 7 days. Run this workflow again to regenerate it from the verified release." >> "$GITHUB_STEP_SUMMARY"
+          echo "Download expires after 1 day. Run this workflow again to regenerate it from the verified release." >> "$GITHUB_STEP_SUMMARY"
