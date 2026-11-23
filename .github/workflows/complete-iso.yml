@@ -6,7 +6,8 @@ on:
     branches: [main]
     paths: ['.github/workflows/complete-iso.yml']
   workflow_run:
-    workflows: ["Build Obryx OS Live ISO"]
+    # The build workflow is named "ONYX" on main and "Obryx" on onyx-0.4-desktop; match either.
+    workflows: ["Build ONYX OS Live ISO", "Build Obryx OS Live ISO"]
     branches: [onyx-0.4-desktop]
     types: [completed]
 
