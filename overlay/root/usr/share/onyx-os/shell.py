@@ -91,8 +91,13 @@ class Shell(Gtk.Application):
         css.load_from_path(str(ROOT / "shell.css"))
         Gtk.StyleContext.add_provider_for_screen(screen, css, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
         monitor = screen.get_monitor_workarea(screen.get_primary_monitor())
-        self.window.set_default_size(min(680 if self.page == "home" else 960, monitor.width - 48), min(610 if self.page == "home" else 650, monitor.height - 100))
-        self.window.set_resizable(True)
+        width = min(680 if self.page == "home" else 960, monitor.width - 48)
+        height = min(610 if self.page == "home" else 650, monitor.height - 100)
+        self.window.set_default_size(width, height)
+        if self.page == "home":
+            # Open Home at its final size so it never grows or shifts while appearing.
+            self.window.set_size_request(width, height)
+        self.window.set_resizable(self.page != "home")
         self.window.set_position(Gtk.WindowPosition.CENTER)
         self.window.set_decorated(False)
         self.window.set_app_paintable(True)
@@ -398,7 +403,7 @@ class Shell(Gtk.Application):
             enabled = [effect for effect, _ in effects if self.read_value(
                 ["kreadconfig6", "--file", "kwinrc", "--group", "Plugins",
                  "--key", effect + "Enabled", "--default",
-                 "true" if effect in ("magiclamp", "scale") else "false"]) == "true"]
+                 "true" if effect == "magiclamp" else "false"]) == "true"]
             current = enabled[0] if len(enabled) == 1 else ("custom" if enabled else "none")
             options = list(effects) + [("none", "None")]
             if current == "custom":
