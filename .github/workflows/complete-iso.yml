@@ -86,11 +86,19 @@ jobs:
           api.create_repo(repo_id, private=False, exist_ok=True)
           # The download website needs the ISO to be public.
           api.update_repo_settings(repo_id, private=False)
+          def release_sha():
+              import subprocess
+              tag = json.load(open('release.json'))['tagName']
+              subprocess.run(['gh', 'release', 'download', tag, '--pattern', os.environ['ISO'] + '.sha256',
+                              '--dir', 'meta', '--clobber'], check=True)
+              return open('meta/' + os.environ['ISO'] + '.sha256').read().split()[0].lower()
           published = 'false'
           try:
               path = api.hf_hub_download(repo_id, 'latest.json')
               latest = json.load(open(path))
-              if latest.get('iso') == os.environ['ISO'] and api.file_exists(repo_id, os.environ['ISO']):
+              # Same file name is not enough: a rebuilt release reuses it. Compare checksums.
+              if (latest.get('iso') == os.environ['ISO'] and latest.get('sha256') == release_sha()
+                      and api.file_exists(repo_id, os.environ['ISO'])):
                   published = 'true'
           except Exception:
               pass
