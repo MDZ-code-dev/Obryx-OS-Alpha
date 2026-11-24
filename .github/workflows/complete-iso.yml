@@ -1,13 +1,18 @@
-name: Download complete Obryx ISO
+name: Publish Obryx ISO to Hugging Face
 
 on:
   workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to publish (leave empty for the newest release)'
+        required: false
+        default: ''
   push:
     branches: [main]
     paths: ['.github/workflows/complete-iso.yml']
   workflow_run:
-    # The build workflow is named "ONYX" on main and "Obryx" on onyx-0.4-desktop; match either.
-    workflows: ["Build ONYX OS Live ISO", "Build Obryx OS Live ISO"]
+    # Matches the build workflow's current name and its old ONYX name.
+    workflows: ["Build Obryx OS Live ISO", "Build ONYX OS Live ISO"]
     branches: [onyx-0.4-desktop]
     types: [completed]
 
@@ -15,12 +20,12 @@ permissions:
   contents: read
 
 concurrency:
-  group: onyx-complete-alpha4
+  group: obryx-publish-iso
   cancel-in-progress: false
 
 jobs:
-  package:
-    if: github.event_name == 'workflow_dispatch' || github.event_name == 'push' || github.event.workflow_run.conclusion == 'success'
+  publish:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     env:
@@ -28,12 +33,42 @@ jobs:
       GH_REPO: ${{ github.repository }}
       HF_TOKEN: ${{ secrets.HF_SECRET }}
       HF_REPO_NAME: Obryx-OS
-      ISO: Obryx-OS-0.4-Alpha4-x86_64.iso
-      TAG: v0.4.0-alpha.4
-      EXPECTED_BYTES: '3678285824'
+      INPUT_TAG: ${{ github.event.inputs.tag }}
     steps:
-      - name: Check Hugging Face access
+      - name: Find the release to publish
+        id: release
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          tag="$INPUT_TAG"
+          if [ -z "$tag" ]; then
+            # Newest release, including pre-releases such as alphas.
+            tag=$(gh release list --limit 1 --json tagName --jq '.[0].tagName')
+          fi
+          if [ -z "$tag" ]; then echo '::error::No release found.'; exit 1; fi
+          gh release view "$tag" --json tagName,name,publishedAt,assets > release.json
+          python3 - <<'PY'
+          import json, os, re
+          rel = json.load(open('release.json'))
+          names = [a['name'] for a in rel['assets']]
+          isos = sorted({re.sub(r'\.part\d+$', '', n) for n in names if re.search(r'\.iso(\.part\d+)?$', n)})
+          if len(isos) != 1:
+              raise SystemExit(f'Expected exactly one ISO on release {rel["tagName"]}, found: {isos}')
+          iso = isos[0]
+          if iso + '.sha256' not in names:
+              raise SystemExit(f'{iso}.sha256 is missing from release {rel["tagName"]}')
+          shots = [n for n in names if n.lower().endswith('.png')]
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
+              out.write(f"tag={rel['tagName']}\niso={iso}\nshots={' '.join(shots)}\n")
+          with open('release-meta.json', 'w') as f:
+              json.dump({'tag': rel['tagName'], 'title': rel['name'], 'published': rel['publishedAt']}, f)
+          PY
+          echo "Publishing $(jq -r .tagName release.json)"
+
+      - name: Check Hugging Face access and what is already published
         id: hf
+        env:
+          ISO: ${{ steps.release.outputs.iso }}
         shell: bash
         run: |
           set -Eeuo pipefail
@@ -43,30 +78,36 @@ jobs:
           fi
           python3 -m pip install --quiet --disable-pip-version-check 'huggingface_hub>=0.34'
           python3 - <<'PY'
-          import os
+          import json, os
           from huggingface_hub import HfApi
-          from huggingface_hub.utils import EntryNotFoundError, RepositoryNotFoundError
           api = HfApi()
           user = api.whoami()['name']
           repo_id = f"{user}/{os.environ['HF_REPO_NAME']}"
-          api.create_repo(repo_id, private=True, exist_ok=True)
-          uploaded = 'false'
+          api.create_repo(repo_id, private=False, exist_ok=True)
+          # The download website needs the ISO to be public.
+          api.update_repo_settings(repo_id, private=False)
+          published = 'false'
           try:
-              [info] = api.get_paths_info(repo_id, [os.environ['ISO']])
-              if getattr(info, 'size', 0) == int(os.environ['EXPECTED_BYTES']):
-                  uploaded = 'true'
-          except (EntryNotFoundError, RepositoryNotFoundError, ValueError):
+              path = api.hf_hub_download(repo_id, 'latest.json')
+              latest = json.load(open(path))
+              if latest.get('iso') == os.environ['ISO'] and api.file_exists(repo_id, os.environ['ISO']):
+                  published = 'true'
+          except Exception:
               pass
           with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
-              out.write(f'repo={repo_id}\nuploaded={uploaded}\n')
+              out.write(f'repo={repo_id}\npublished={published}\n')
           PY
 
-      - name: Download and verify complete release image
-        if: steps.hf.outputs.uploaded != 'true'
+      - name: Download and verify the release image
+        if: steps.hf.outputs.published != 'true'
+        env:
+          TAG: ${{ steps.release.outputs.tag }}
+          ISO: ${{ steps.release.outputs.iso }}
+          SHOTS: ${{ steps.release.outputs.shots }}
         shell: bash
         run: |
           set -Eeuo pipefail
-          mkdir parts complete
+          mkdir -p parts complete/screenshots
           # Retry transient download errors, not checksum or validation failures.
           download() {
             for attempt in 1 2 3; do
@@ -75,15 +116,13 @@ jobs:
               sleep "$((attempt * 5))"
             done
           }
-          gh release view "$TAG" --json assets > release.json
           if jq -e --arg name "$ISO" '.assets[] | select(.name == $name)' release.json >/dev/null; then
             download --pattern "$ISO" --dir complete
           else
             download --pattern "$ISO.part*" --dir parts
             python3 - <<'PY'
           from pathlib import Path
-          import os
-          import shutil
+          import os, shutil
           name = os.environ['ISO']
           parts = sorted(Path('parts').glob(name + '.part*'))
           if not parts or [p.name for p in parts] != [f'{name}.part{i:02d}' for i in range(len(parts))]:
@@ -97,51 +136,57 @@ jobs:
           fi
           download --pattern "$ISO.sha256" --dir complete
           python3 - <<'PY'
-          import os
-          import re
+          import os, re
           from pathlib import Path
           name = os.environ['ISO']
-          iso = Path('complete') / name
-          if iso.stat().st_size != int(os.environ['EXPECTED_BYTES']):
-              raise SystemExit('Unexpected Alpha 4 ISO size; do not upload')
-          checksum = Path(str(iso) + '.sha256').read_text().strip()
+          checksum = Path('complete', name + '.sha256').read_text().strip()
           if not re.fullmatch(r'[0-9a-fA-F]{64} [ *]' + re.escape(name), checksum):
               raise SystemExit('Unexpected checksum manifest; do not upload')
           PY
           (cd complete && sha256sum -c "$ISO.sha256")
           rm -rf parts
+          for shot in $SHOTS; do download --pattern "$shot" --dir complete/screenshots; done
 
-      - name: Upload single ISO to Hugging Face
-        if: steps.hf.outputs.uploaded != 'true'
+      - name: Upload ISO, checksum and screenshots to Hugging Face
+        if: steps.hf.outputs.published != 'true'
         env:
           HF_REPO: ${{ steps.hf.outputs.repo }}
-          HF_HUB_ENABLE_HF_TRANSFER: '0'
+          TAG: ${{ steps.release.outputs.tag }}
+          ISO: ${{ steps.release.outputs.iso }}
         shell: bash
         run: |
           set -Eeuo pipefail
           python3 - <<'PY'
-          import os
+          import json, os
+          from pathlib import Path
           from huggingface_hub import HfApi
-          api = HfApi()
-          api.upload_folder(
+          iso = os.environ['ISO']
+          meta = json.load(open('release-meta.json'))
+          meta.update({
+              'iso': iso,
+              'size': Path('complete', iso).stat().st_size,
+              'sha256': Path('complete', iso + '.sha256').read_text().split()[0].lower(),
+              'screenshots': sorted(p.name for p in Path('complete/screenshots').glob('*.png')),
+          })
+          Path('complete/latest.json').write_text(json.dumps(meta, indent=2) + '\n')
+          HfApi().upload_folder(
               repo_id=os.environ['HF_REPO'],
               folder_path='complete',
-              commit_message=f"Obryx OS {os.environ['TAG']} complete ISO",
+              commit_message=f"Obryx OS {os.environ['TAG']}",
           )
           PY
 
       - name: Show download link
         env:
           HF_REPO: ${{ steps.hf.outputs.repo }}
-          ALREADY: ${{ steps.hf.outputs.uploaded }}
+          ISO: ${{ steps.release.outputs.iso }}
+          TAG: ${{ steps.release.outputs.tag }}
+          ALREADY: ${{ steps.hf.outputs.published }}
         shell: bash
         run: |
-          url="https://huggingface.co/$HF_REPO/resolve/main/$ISO?download=true"
           {
-            if [ "$ALREADY" = 'true' ]; then echo 'The complete ISO was already on Hugging Face, so nothing was re-uploaded.'; echo; fi
-            echo "Download the complete ISO (one file, no combining): $url"
+            if [ "$ALREADY" = 'true' ]; then echo "$TAG was already published, so nothing was re-uploaded."; echo; fi
+            echo "Download $TAG (one file): https://huggingface.co/$HF_REPO/resolve/main/$ISO?download=true"
             echo
             echo "Checksum: https://huggingface.co/$HF_REPO/resolve/main/$ISO.sha256"
-            echo
-            echo 'The Hugging Face repo is private: sign in to huggingface.co in your browser first. Then select the .iso in Rufus.'
           } >> "$GITHUB_STEP_SUMMARY"
