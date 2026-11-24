@@ -113,6 +113,16 @@ done
 sed -i '/^LOGO=/d; /^VARIANT=/d; /^VERSION=/d' /usr/lib/os-release
 printf 'LOGO=onyx-crystal\nVARIANT="Obryx Desktop"\nVERSION="0.4 Alpha 4"\n' >> /usr/lib/os-release
 
+# Faster live login: skip the calendar reminder daemon, which starts Akonadi
+# and its mail agents, and the standalone X11 screen-sharing bridge. KWin
+# provides that itself, and the bridge can leave an empty window on screen.
+for entry in /etc/xdg/autostart/*kalendarac*.desktop /etc/xdg/autostart/*xwaylandvideobridge*.desktop; do
+  [ -f "$entry" ] || continue
+  sed -i '/^Hidden=/d' "$entry"
+  echo 'Hidden=true' >> "$entry"
+  echo "ONYX-OS: disabled login autostart $(basename "$entry")"
+done
+
 # Fedora's live session can inject its own per-user welcome preferences.
 # Apply the live image policy before the KDED module starts.
 cat > /etc/xdg/plasma-welcomerc <<'EOF'
