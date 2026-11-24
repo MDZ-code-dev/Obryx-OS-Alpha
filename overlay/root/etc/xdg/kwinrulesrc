@@ -1,6 +1,6 @@
 [General]
-count=2
-rules=onyx-shell,obryx-window-opacity
+count=3
+rules=onyx-shell,obryx-window-opacity,obryx-home-center
 
 [onyx-shell]
 Description=Obryx Home and Settings
@@ -17,3 +17,11 @@ opacityactive=98
 opacityactiverule=2
 opacityinactive=98
 opacityinactiverule=2
+
+# Home always opens in the same place, in the centre of the screen.
+[obryx-home-center]
+Description=Obryx Home opens in the centre
+wmclass=org.onyx.Desktop.Home
+wmclassmatch=1
+placement=5
+placementrule=2
