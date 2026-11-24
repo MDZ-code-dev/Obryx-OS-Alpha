@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# TEMPORARY alpha diagnostic (remove once the stray black window is fixed).
+# Logs every window KWin manages, plus running programs, to the system
+# journal shortly after login so the CI boot test can name the black window.
+logger -t obryx-windows "window diagnostic started"
+ps -eo pid,comm,args --sort=start_time | grep -v '\[' | tail -n 70 | logger -t obryx-windows
+script=$(mktemp --suffix=.js)
+cat > "$script" <<'EOF'
+const windows = workspace.windowList ? workspace.windowList() : workspace.clientList();
+for (const w of windows) {
+    const g = w.frameGeometry;
+    const line = "OBRYX_WINDOW class=" + w.resourceClass + " name=" + w.resourceName
+        + " caption=" + w.caption + " pid=" + w.pid + " at=" + g.x + "," + g.y
+        + " size=" + g.width + "x" + g.height + " normal=" + w.normalWindow
+        + " dialog=" + w.dialog + " desktop=" + w.desktopWindow + " dock=" + w.dock
+        + " opacity=" + w.opacity;
+    print(line);
+    if (typeof console !== "undefined") console.warn(line);
+}
+EOF
+for round in 1 2 3 4 5 6 7 8 9 10; do
+  sleep 4
+  dbus-send --session --print-reply --dest=org.kde.KWin /Scripting org.kde.kwin.Scripting.unloadScript string:obryx-window-log >/dev/null 2>&1
+  reply=$(dbus-send --session --print-reply --dest=org.kde.KWin /Scripting org.kde.kwin.Scripting.loadScript string:"$script" string:obryx-window-log 2>&1)
+  id=$(printf '%s\n' "$reply" | awk '/int32/ {print $2}')
+  logger -t obryx-windows "round $round script id ${id:-none}"
+  if [ -n "$id" ]; then
+    dbus-send --session --print-reply --dest=org.kde.KWin "/Scripting/Script$id" org.kde.kwin.Script.run >/dev/null 2>&1 \
+      || dbus-send --session --print-reply --dest=org.kde.KWin "/$id" org.kde.kwin.Script.run >/dev/null 2>&1
+  fi
+done
+rm -f "$script"
