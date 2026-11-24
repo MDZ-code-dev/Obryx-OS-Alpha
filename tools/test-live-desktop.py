@@ -221,6 +221,14 @@ try:
     desktop_text = screen("desktop")
     if re.search(r"Welcome Center|Install to Hard Drive", desktop_text, re.I):
         raise RuntimeError("Upstream installer welcome is covering the live desktop")
+    # A window left behind after closing shows up as a large pure-black area.
+    # The ONYX wallpaper never goes below grey level 8.
+    shot = cv2.imread(str(artifacts / "desktop.png"), cv2.IMREAD_GRAYSCALE)
+    upper = shot[: int(shot.shape[0] * 0.8)]
+    count, _, regions, _ = cv2.connectedComponentsWithStats((upper <= 3).astype("uint8"))
+    black = max((int(regions[i, cv2.CC_STAT_AREA]) for i in range(1, count)), default=0)
+    if black > 0.02 * shot.shape[0] * shot.shape[1]:
+        raise RuntimeError(f"A black window was left on the desktop ({black} px); see desktop.png")
     # Activate the installed panel applet. Building the GTK window directly
     # would miss a broken Plasma widget or panel layout.
     dock_x, dock_y, screen_width, screen_height = click_home()
