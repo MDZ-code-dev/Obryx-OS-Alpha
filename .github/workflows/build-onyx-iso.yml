@@ -1,4 +1,4 @@
-name: Build ONYX OS Live ISO
+name: Build Obryx OS Live ISO
 
 on:
   workflow_dispatch:
