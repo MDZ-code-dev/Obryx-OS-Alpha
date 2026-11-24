@@ -21,6 +21,10 @@ def customize_boot_menu(template: Path):
     menu, count = re.subn(r'(?m)^set default=.*$', 'set default="0"', menu)
     if count != 1:
         raise ValueError("Expected one GRUB default entry setting")
+    # Fedora's live menu waits up to a minute. Boot the default entry after 3 seconds.
+    menu, count = re.subn(r'(?m)^set timeout=.*$', 'set timeout=3', menu)
+    if count == 0:
+        menu = menu.replace('set default="0"', 'set default="0"\nset timeout=3', 1)
     template.write_text(menu)
 
 
