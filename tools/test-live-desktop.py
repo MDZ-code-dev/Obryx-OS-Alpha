@@ -228,6 +228,8 @@ try:
     count, _, regions, _ = cv2.connectedComponentsWithStats((upper <= 3).astype("uint8"))
     black = max((int(regions[i, cv2.CC_STAT_AREA]) for i in range(1, count)), default=0)
     if black > 0.02 * shot.shape[0] * shot.shape[1]:
+        print(f"BLACK_WINDOW {black} px; keeping the VM up for in-guest diagnostics", flush=True)
+        time.sleep(45)
         raise RuntimeError(f"A black window was left on the desktop ({black} px); see desktop.png")
     # Activate the installed panel applet. Building the GTK window directly
     # would miss a broken Plasma widget or panel layout.
