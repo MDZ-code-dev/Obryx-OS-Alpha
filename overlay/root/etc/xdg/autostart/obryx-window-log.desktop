@@ -1,8 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=Obryx window diagnostic
-Comment=Temporary alpha diagnostic: logs open windows to the journal after login
-Exec=/bin/bash /usr/local/bin/obryx-window-log
-NoDisplay=true
-OnlyShowIn=KDE;
-X-KDE-autostart-phase=2
