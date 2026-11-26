@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=ONYX Terminal
+Comment=Open the terminal
+Exec=konsole
+Icon=utilities-terminal
+Terminal=false
+Categories=System;TerminalEmulator;

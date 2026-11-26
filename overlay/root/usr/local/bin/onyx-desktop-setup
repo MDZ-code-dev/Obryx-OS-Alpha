@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# ONYX 0.3 first-run desktop setup; safe to retry on a live session.
+set -u
+state="${XDG_STATE_HOME:-$HOME/.local/state}/onyx-os"
+mkdir -p "$state" || exit 1
+log="$state/desktop-setup.log"
+[[ -e "$state/desktop-glass-5-applied" ]] && exit 0
+printf 'ONYX 0.3 setup started: %s\n' "$(date -Is)" >> "$log"
+
+if command -v plasma-apply-colorscheme >/dev/null 2>&1; then
+  plasma-apply-colorscheme OnyxGlass >> "$log" 2>&1 || true
+fi
+if command -v kwriteconfig6 >/dev/null 2>&1; then
+  kwriteconfig6 --file kwinrc --group Plugins --key blurEnabled true || true
+  kwriteconfig6 --file kdeglobals --group KDE --key AnimationDurationFactor 0.75 || true
+fi
+layout=/usr/share/onyx-os/plasma-layout.js
+[[ -s "$layout" ]] || { echo "ONYX layout missing" >> "$log"; exit 1; }
+# qdbus6 is not guaranteed on the Fedora KDE live image; use dbus-send,
+# which accepts a single string argument and returns success/failure.
+command -v dbus-send >/dev/null 2>&1 || {
+  echo "dbus-send missing; preserving original panel" >> "$log"
+  exit 1
+}
+for attempt in $(seq 1 20); do
+  if reply=$(dbus-send --session --print-reply --reply-timeout=5000 \
+      --dest=org.kde.plasmashell /PlasmaShell \
+      org.kde.PlasmaShell.evaluateScript \
+      string:"$(cat "$layout")" 2>&1) && [[ "$reply" == *ONYX_LAYOUT_OK* ]]; then
+    printf '%s\n' "$reply" >> "$log"
+    touch "$state/desktop-glass-5-applied"
+    echo "ONYX panel scripting call returned successfully" >> "$log"
+    exit 0
+  fi
+  printf '%s\n' "$reply" >> "$log"
+  sleep 2
+done
+echo "Plasma did not accept the script; keeping current session" >> "$log"
+exit 1

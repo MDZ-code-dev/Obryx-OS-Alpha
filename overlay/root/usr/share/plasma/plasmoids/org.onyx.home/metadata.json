@@ -1,0 +1,16 @@
+{
+  "KPlugin": {
+    "Id": "org.onyx.home",
+    "Name": "ONYX Home",
+    "Description": "Open the ONYX application launcher",
+    "Version": "0.3.1",
+    "Icon": "onyx-crystal",
+    "License": "GPL-2.0-or-later",
+    "Category": "Application Launchers"
+  },
+  "KPackageStructure": "Plasma/Applet",
+  "X-Plasma-API-Minimum-Version": "6.0",
+  "X-Plasma-Provides": [
+    "org.kde.plasma.launchermenu"
+  ]
+}

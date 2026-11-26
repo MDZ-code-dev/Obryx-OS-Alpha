@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Application
+Name=Install ONYX OS
+OnlyShowIn=KDE;
+Exec=/usr/local/bin/onyx-live-installer
+Terminal=false

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# ONYX OS 0.2 Alpha - Fedora 45 KDE Live image build.
+# ONYX OS 0.3 Alpha - Fedora 45 KDE Live image build.
 set -Eeuo pipefail
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 WORK="${ONYX_WORKDIR:-$ROOT/work}"
@@ -9,14 +9,17 @@ if [[ "${1:-}" == "--check" ]]; then
   for file in "$ROOT/overlay/root/usr/share/onyx-os/onyx-logo.svg"     "$ROOT/overlay/root/usr/share/wallpapers/ONYX/contents/images/1920x1080.svg"     "$ROOT/overlay/root/usr/local/bin/onyx-first-login"     "$ROOT/build/onyx-config-hook.sh"     "$ROOT/overlay/root/etc/xdg/autostart/onyx-first-login.desktop"; do
     [[ -s "$file" ]] || { echo "Missing required ONYX file: $file"; exit 1; }
   done
-  bash -n "$ROOT/build/onyx-config-hook.sh" "$ROOT/overlay/root/usr/local/bin/onyx-first-login"
-  echo "ONYX 0.2 source files and scripts verified (not a boot test)."
+  bash -n "$ROOT/build/onyx-config-hook.sh" "$ROOT/overlay/root/usr/local/bin/onyx-first-login" "$ROOT/overlay/root/usr/local/bin/onyx-desktop-setup"
+  python3 "$ROOT/tools/validate-onyx-source.py"
+  [[ -s "$ROOT/overlay/root/usr/share/onyx-os/plasma-layout.js" ]] || exit 1
+  [[ -s "$ROOT/overlay/root/usr/share/plasma/look-and-feel/org.onyx.desktop/contents/splash/Splash.qml" ]] || exit 1
+  echo "ONYX 0.3 source files and scripts verified (not a boot test)."
   exit 0
 fi
 [[ "$(uname -m)" == "x86_64" ]] || { echo "x86_64 build host required"; exit 1; }
 [[ -f /etc/fedora-release ]] || { echo "Run this on Fedora Linux."; exit 1; }
 (( EUID == 0 )) || { echo "Run with sudo/root."; exit 1; }
-dnf -y install kiwi kiwi-systemdeps distribution-gpg-keys git python3 file librsvg2-tools google-noto-sans-fonts
+dnf -y install kiwi kiwi-systemdeps distribution-gpg-keys git python3 file xorriso librsvg2-tools google-noto-sans-fonts
 mkdir -p "$WORK" "$OUT"
 if [[ ! -d "$WORK/upstream/.git" ]]; then
   git clone --depth 1 --branch f45 "$UPSTREAM" "$WORK/upstream"
@@ -30,14 +33,19 @@ fi
 SVG="$ROOT/overlay/root/usr/share/wallpapers/ONYX/contents/images/1920x1080.svg"
 PNG="$ROOT/overlay/root/usr/share/wallpapers/ONYX/contents/images/1920x1080.png"
 rsvg-convert -w 1920 -h 1080 -o "$PNG" "$SVG"
+bash "$ROOT/tools/render-shell-icons.sh"
+ART="$ROOT/overlay/root/usr/share/onyx-os"
+rsvg-convert -w 340 -h 145 -o "$ART/boot-logo.png" "$ROOT/overlay/root/usr/share/onyx-os/onyx-logo.svg"
 [[ -s "$PNG" ]] || { echo "ONYX wallpaper conversion failed"; exit 1; }
 file "$PNG" | grep -q 'PNG image data' || { echo "Generated wallpaper is not PNG"; exit 1; }
+chmod +x "$ROOT/overlay/root/usr/local/bin/onyx-desktop-setup"
+chmod +x "$ROOT/overlay/root/usr/local/bin/onyx-first-login"
 mkdir -p "$WORK/upstream/root"
 cp -a "$ROOT/overlay/root/." "$WORK/upstream/root/"
 # Fedora's config.sh runs after KIWI applies the overlay. Apply our default
 # settings last, and fail the image if ONYX files were not included.
-printf '\n\n# ONYX OS final system-level branding check and defaults\n' >> "$WORK/upstream/config.sh"
-cat "$ROOT/build/onyx-config-hook.sh" >> "$WORK/upstream/config.sh"
+python3 "$ROOT/tools/prepare-kiwi.py" "$WORK/upstream"
+bash -n "$WORK/upstream/config.sh"
 echo "ONYX branding hook added to Fedora KIWI config.sh"
 cd "$WORK/upstream"
 ./kiwi-build --kiwi-file=Fedora.kiwi --image-type=iso --image-profile=KDE-Desktop-Live --output-dir="$OUT"
@@ -47,9 +55,14 @@ for dir in "$OUT" "$ROOT/output-build" "$WORK/upstream/output-build"; do
 done
 mapfile -t ISOS < <(find "${IMAGE_DIRS[@]}" -maxdepth 2 -type f -name '*.iso' -print | sort -u)
 [[ "${#ISOS[@]}" -eq 1 ]] || { echo "Expected one ISO, found ${#ISOS[@]}"; exit 1; }
-TARGET="$OUT/ONYX-OS-0.2-Alpha-x86_64.iso"
+TARGET="$OUT/ONYX-OS-0.3.1-Alpha-x86_64.iso"
 [[ "${ISOS[0]}" == "$TARGET" ]] || mv -- "${ISOS[0]}" "$TARGET"
 [[ -s "$TARGET" ]] || { echo "Empty ISO"; exit 1; }
+# Inspect the authored image before producing a downloadable release.
+menu_check=$(mktemp -d)
+trap 'rm -rf -- "$menu_check"' EXIT
+xorriso -osirrox on -indev "$TARGET" -extract /boot/grub2/grub.cfg "$menu_check/grub.cfg"
+python3 "$ROOT/tools/check-iso-menu.py" "$menu_check/grub.cfg"
 (cd "$OUT" && sha256sum "$(basename "$TARGET")" > "$(basename "$TARGET").sha256")
 ls -lh "$TARGET" "$TARGET.sha256"
-echo "ONYX 0.2 ISO created. Boot and desktop must still be verified on real hardware."
+echo "ONYX 0.3 ISO created. Boot and desktop must still be verified on real hardware."

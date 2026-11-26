@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kcfg xmlns="http://www.kde.org/standards/kcfg/1.0"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.kde.org/standards/kcfg/1.0
+      http://www.kde.org/standards/kcfg/1.0/kcfg.xsd">
+    <kcfgfile name=""/>
+    <group name="General">
+        <!-- Pinned launcher .desktop files, comma-separated (applications:name.desktop format) -->
+        <entry name="pinnedLaunchers" type="StringList">
+            <default>applications:brave-browser.desktop,applications:code.desktop,applications:org.kde.dolphin.desktop,applications:org.kde.konsole.desktop</default>
+        </entry>
+        <!-- Base icon size in pixels (before magnification) -->
+        <entry name="iconSize" type="Int">
+            <default>48</default>
+        </entry>
+        <!-- Spacing between icons in pixels -->
+        <entry name="iconSpacing" type="Int">
+            <default>6</default>
+        </entry>
+        <!-- Background corner radius in pixels -->
+        <entry name="cornerRadius" type="Int">
+            <default>16</default>
+        </entry>
+        <!-- Horizontal padding inside the background pill -->
+        <entry name="paddingHorizontal" type="Int">
+            <default>10</default>
+        </entry>
+        <!-- Vertical padding inside the background pill -->
+        <entry name="paddingVertical" type="Int">
+            <default>8</default>
+        </entry>
+        <!-- Max icon scale factor on hover (1.0 = no magnification) -->
+        <entry name="hoverScale" type="Double">
+            <default>1.4</default>
+        </entry>
+        <!-- Background opacity 0.0–1.0 -->
+        <entry name="backgroundOpacity" type="Double">
+            <default>0.88</default>
+        </entry>
+        <!-- Vertical lift (px) for the hovered icon, on top of magnification -->
+        <entry name="hoverLift" type="Int">
+            <default>0</default>
+        </entry>
+    </group>
+</kcfg>

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=ONYX Store
+GenericName=Install and update apps
+Comment=Browse and manage apps using KDE Discover
+Exec=plasma-discover
+Icon=plasmadiscover
+Terminal=false
+Categories=System;PackageManager;
+Keywords=apps;store;flatpak;install;update;

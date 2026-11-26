@@ -1,0 +1,5 @@
+#!/bin/sh
+# The installer choice boots the same live system with an explicit opt-in.
+[ -d /run/initramfs/live ] || grep -Eq '(^|[[:space:]])(rd.live.image(=1)?|root=live:[^[:space:]]+)([[:space:]]|$)' /proc/cmdline || exit 0
+grep -Eq '(^|[[:space:]])onyx\.install=1([[:space:]]|$)' /proc/cmdline || exit 0
+exec /usr/bin/liveinst

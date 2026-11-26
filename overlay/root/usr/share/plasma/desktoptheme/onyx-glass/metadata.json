@@ -1,0 +1,10 @@
+{
+  "KPlugin": {
+    "Name": "ONYX Glass",
+    "Id": "onyx-glass",
+    "Version": "1.0",
+    "Description": "Translucent graphite desktop panels",
+    "License": "GPL-2.0-or-later"
+  },
+  "X-Plasma-API": "5.0"
+}

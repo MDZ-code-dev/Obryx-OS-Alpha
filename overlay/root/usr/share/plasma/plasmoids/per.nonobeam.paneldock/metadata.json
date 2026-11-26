@@ -1,0 +1,19 @@
+{
+    "KPackageStructure": "Plasma/Applet",
+    "KPlugin": {
+        "Authors": [
+            {
+                "Email": "nguyenhuuthuc0405@gmail.com",
+                "Name": "Nonobeam"
+            }
+        ],
+        "Category": "Windows and Tasks",
+        "Description": "Minimal floating dock — pinned launchers + running windows, icon-only with hover magnification",
+        "Icon": "per.nonobeam.paneldock",
+        "Id": "per.nonobeam.paneldock",
+        "License": "GPL-3.0-or-later",
+        "Name": "Nonobeam Panel Dock",
+        "Version": "1.0.0"
+    },
+    "X-Plasma-API-Minimum-Version": "6.0"
+}

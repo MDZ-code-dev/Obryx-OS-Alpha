@@ -2,6 +2,9 @@ name: Build Obryx OS Live ISO
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - onyx-0.3-desktop
 
 permissions:
   contents: write
@@ -22,6 +25,27 @@ jobs:
           df -h /
       - name: Check source files
         run: bash build-onyx-iso.sh --check
+      - name: Exercise ONYX Home, application search and Settings
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends gir1.2-gtk-3.0 python3-gi xvfb xauth dbus-daemon librsvg2-bin
+          bash tools/render-shell-icons.sh
+          xvfb-run -a dbus-run-session -- /usr/bin/python3 tools/check-onyx-shell.py previews
+      - name: Check Home and Settings on the target Fedora GTK runtime
+        run: |
+          docker run --rm -v "$PWD:/src:ro" -w /src fedora:45 bash -euc '
+            dnf -qy install python3-gobject gtk3 gtk4 xorg-x11-server-Xvfb xorg-x11-xauth dbus-daemon mesa-dri-drivers
+            Xvfb :91 -screen 0 1280x800x24 -nolisten tcp &
+            export DISPLAY=:91
+            dbus-run-session -- python3 tools/check-onyx-shell.py /tmp/onyx-previews
+          '
+      - name: Save native desktop previews
+        uses: actions/upload-artifact@v4
+        with:
+          name: onyx-glass-previews
+          path: previews/*.png
+          retention-days: 7
+        continue-on-error: true
       - name: Build Fedora KDE image
         shell: bash
         run: |
@@ -36,12 +60,27 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test -s output/ONYX-OS-0.2-Alpha-x86_64.iso
-          test -s output/ONYX-OS-0.2-Alpha-x86_64.iso.sha256
-          (cd output && sha256sum --check ONYX-OS-0.2-Alpha-x86_64.iso.sha256)
-          file output/ONYX-OS-0.2-Alpha-x86_64.iso
-          ls -lh output/ONYX-OS-0.2-Alpha-x86_64.iso
+          test -s output/ONYX-OS-0.3.1-Alpha-x86_64.iso
+          test -s output/ONYX-OS-0.3.1-Alpha-x86_64.iso.sha256
+          (cd output && sha256sum --check ONYX-OS-0.3.1-Alpha-x86_64.iso.sha256)
+          file output/ONYX-OS-0.3.1-Alpha-x86_64.iso
+          ls -lh output/ONYX-OS-0.3.1-Alpha-x86_64.iso
           echo "NOTE: ISO signature and checksum are valid; live desktop boot still needs testing."
+      - name: Boot the release in a diskless UEFI VM
+        timeout-minutes: 25
+        run: |
+          sudo apt-get install -y --no-install-recommends qemu-system-x86 ovmf tesseract-ocr python3-pil python3-opencv
+          sudo /usr/bin/python3 tools/test-live-desktop.py output/ONYX-OS-0.3.1-Alpha-x86_64.iso
+      - name: Save live session screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: onyx-live-session
+          path: |
+            vm-test/*.png
+            vm-test/journal.log
+          if-no-files-found: ignore
+          retention-days: 7
       # Releases permit large assets without the GitHub Actions artifact quota.
       # GitHub release assets must each be smaller than 2 GiB.
       - name: Publish ONYX alpha ISO to private GitHub Release
@@ -50,8 +89,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -Eeuo pipefail
-          TAG="v0.2.0-alpha"
-          ISO="output/ONYX-OS-0.2-Alpha-x86_64.iso"
+          TAG="v0.3.1-alpha.4"
+          ISO="output/ONYX-OS-0.3.1-Alpha-x86_64.iso"
           SHA="$ISO.sha256"
           # The ISO is created as root inside the Fedora Docker container.
           # Make the output directory writable by the GitHub runner so
@@ -63,8 +102,8 @@ jobs:
           if ! gh release view "$TAG" >/dev/null 2>&1; then
             gh release create "$TAG" \
               --target "$GITHUB_SHA" \
-              --title "ONYX OS 0.2 Alpha - untested Live ISO" \
-              --notes "Experimental Fedora 45 KDE Live image. The build and checksum are automated but booting and installing have NOT yet been tested. For testing only; do not replace your main OS." \
+              --title "ONYX OS 0.3.1 Alpha - Glass Live USB" \
+              --notes "Live USB alpha. Validated in a diskless UEFI virtual machine." \
               --prerelease
           fi
           gh release upload "$TAG" "$SHA" --clobber
@@ -82,12 +121,19 @@ jobs:
             PART_SIZE_MIB=900
             partnum=0
             while (( partnum * PART_SIZE_MIB * 1024 * 1024 < SIZE )); do
-              printf -v PART '%s/ONYX-OS-0.2-Alpha-x86_64.iso.part%02d' "$PART_DIR" "$partnum"
+              printf -v PART '%s/ONYX-OS-0.3.1-Alpha-x86_64.iso.part%02d' "$PART_DIR" "$partnum"
               dd if="$ISO" of="$PART" bs=1M skip="$((partnum * PART_SIZE_MIB))" count="$PART_SIZE_MIB" status=none
               test -s "$PART"
               gh release upload "$TAG" "$PART" --clobber
+              sha256sum "$PART" | awk -v name="$(basename "$PART")" '{print $1 "  " name}' >> "$PART_DIR/parts.sha256"
               rm -f "$PART"
               (( partnum += 1 ))
             done
+            gh release download "$TAG" --pattern '*.part*' --pattern '*.cmd' --pattern '*.iso.sha256' --dir "$PART_DIR"
+            (cd "$PART_DIR" && sha256sum -c parts.sha256 && cat *.part[0-9][0-9] | sha256sum > rebuilt.sha256)
+            test "$(cut -d' ' -f1 "$PART_DIR/rebuilt.sha256")" = "$(cut -d' ' -f1 "$SHA")"
+            cmp "$SHA" "$PART_DIR/$(basename "$SHA")"
+            cmp tools/COMBINE-ONYX-WINDOWS.cmd "$PART_DIR/COMBINE-ONYX-WINDOWS.cmd"
+            cat "$PART_DIR/rebuilt.sha256"
           fi
           gh release view "$TAG" --json url --jq .url

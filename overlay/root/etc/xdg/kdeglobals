@@ -1,6 +1,6 @@
 [General]
-ColorScheme=BreezeDark
+ColorScheme=OnyxGlass
 [KDE]
-LookAndFeelPackage=org.kde.breezedark.desktop
+LookAndFeelPackage=org.onyx.desktop
 [Icons]
 Theme=breeze-dark
